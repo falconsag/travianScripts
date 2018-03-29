@@ -197,7 +197,7 @@ function xpath(query, object, qt) { // Searches object (or document) for string/
 /**************************************************************************
  * @param options: [aTask, iCurrentActiveVillage] (optional)  OR sNewdid in case of finding the code for construction.
  ***************************************************************************/
-function get(url, callback, options, respType) {
+function get(url, callback, options, respType, async) {
 	var httpRequest = new XMLHttpRequest();	
 	if( !(typeof respType === 'undefined' || respType === null) ){
 		httpRequest.responseType = respType;
@@ -207,15 +207,22 @@ function get(url, callback, options, respType) {
 				callback(httpRequest, options);
 		};
 	}
-	
-	httpRequest.open("GET", url, true);
+	if(typeof(async) != 'undefined' && async != null){
+		httpRequest.open("GET", url, async);
+	}else{
+		httpRequest.open("GET", url, true);
+	}
 	httpRequest.send(null);
 }
 
-function post(url, data, callback, options) {
+function post(url, data, callback, options,async) {
 	var httpRequest = new XMLHttpRequest();
 	data = encodeURI(data);
-	httpRequest.open("POST", url, true);
+	if(typeof(async) != 'undefined' && async != null){
+		httpRequest.open("POST", url, async);
+	}else{
+		httpRequest.open("POST", url, true);
+	}
 	httpRequest.onreadystatechange = function() {
 		callback(httpRequest, options)
 	};
@@ -959,7 +966,7 @@ function checkSetTasks() {
 					aTasks = aTasks.join("|");
 					setVariable("TTQ_TASKS", aTasks);
 				}
-				//switchActiveVillage(activeVillageBeforeTrigger);
+				switchActiveVillage(activeVillageBeforeTrigger);
 				bLocked = false;
 				return true;
 			}
@@ -2963,7 +2970,7 @@ function merchant(aTask) {
 	var nid = parseInt(aTask[4]);
 	var target = parseInt(aTask[2]);
 	var sUrl = "build.php?"+(isNaN(nid)?"":("newdid="+nid+"&")) + "t=5&gid=17" + ( (isNaN(target) || target < 1 || target > 641601) ? "" : "&z="+target );
-	get(fullName+sUrl, handleMerchantRequest1, aTask);
+	get(fullName+sUrl, handleMerchantRequest1, aTask, false);
 	_log(2,"SendMerchant> End.");
 }
 
@@ -3055,7 +3062,7 @@ function handleMerchantRequest1(httpRequest, aTask) {
 				aTask[5] = reqVID;
 				_log(3,"sParams:"+sParams);
 				sParams += '&ajaxToken='+getAjaxToken();
-				post(fullName+"ajax.php", sParams, handleMerchantRequest2, aTask);
+				post(fullName+"ajax.php", sParams, handleMerchantRequest2, aTask,false);
 				return;
 			}
 			if ( reqVID != currentActiveVillage ) switchActiveVillage(currentActiveVillage);
@@ -3124,7 +3131,7 @@ function handleMerchantRequest2(httpRequest, aTask) {
 				sParams += "r1=" + opts[2] + "&r2=" + opts[3] + "&r3=" + opts[4] + "&r4=" + opts[5];
 				_log(3,"sParams:"+sParams);
 				sParams += '&ajaxToken='+getAjaxToken();
-				post(fullName+"ajax.php", sParams, handleMerchantRequestConfirmation, options);
+				post(fullName+"ajax.php", sParams, handleMerchantRequestConfirmation, options,false);
 				return;
 			}
 			if ( reqVID != currentActiveVillage ) switchActiveVillage(currentActiveVillage);
