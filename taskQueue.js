@@ -946,29 +946,47 @@ function checkSetTasks() {
 		return false;
 	}
 //-- }
-	if ( aTasks != "" ) {
+	//CUSTOM
+	var activeVillageBeforeTrigger = currentActiveVillage;
+	var anyTaskExecuted = false;
+	if ( aTasks != "" ) { 
 		aTasks = aTasks.split("|");
+		var skipVillagesSet = new Set();
 		for( indexecske = 0, tY = aTasks.length ; indexecske < tY ; ++indexecske) {
 			aThisTask = aTasks[indexecske].split(",");
 		// The stored time (Unix GMT time) should be compared against the GMT time, not local!
 			if(aThisTask[1] <= oDate) {
+				var currVillageId = aThisTask[4];
+				var taskType = aThisTask[0];
+				console.log("checking village: "+ currVillageId);
+				if(taskType == "0" && skipVillagesSet.has(currVillageId)){
+					continue;
+				}
 				_log(1, "CheckSetTasks> Triggering task: " + aTasks[indexecske]);
 				var result = null;
-				var activeVillageBeforeTrigger = currentActiveVillage;
 				result = triggerTask(aThisTask);
                 if(result != "fail"){
 					aTasks.splice(indexecske, 1);  //delete this task
 					refreshTaskList(aTasks);
-					aTasks = aTasks.join("|");
-					setVariable("TTQ_TASKS", aTasks);
+					anyTaskExecuted = true;
+					indexecske--;
+				}else{
+					//only if an upgrade job failed adding the village to skip
+					if(taskType== "0"){
+						skipVillagesSet.add(currVillageId);
+						console.log("task failing, adding id to villages to skip");
+					}
 				}
-				switchActiveVillage(activeVillageBeforeTrigger);
-				bLocked = false;
-				return true;
 			}
 		}
+		aTasks = aTasks.join("|");
+		setVariable("TTQ_TASKS", aTasks);
 	}
 	bLocked = false;
+	if(anyTaskExecuted){
+		switchActiveVillage(activeVillageBeforeTrigger);
+		return true;
+	}
 
 	tA = getOption("RELOAD_AT", 0, "integer");
 	if ( tA > 0 ) {
