@@ -106,12 +106,12 @@ if ( (strTitle.indexOf("500 ") > -1 ) || (strTitle.indexOf("502 ") > -1 ) || (st
 /*********************
  *		Settings
  *********************/
-var LOG_LEVEL = 3; // 0 - quiet, 1 - nearly quite, 2 - verbose, 3 - detailed
+var LOG_LEVEL = 0; // 0 - quiet, 1 - nearly quite, 2 - verbose, 3 - detailed
 
 // How often do we check for tasks to trigger in seconds. Default is 10 secs.
 // Low value = high accuracy in triggering tasks. To make your browser unresponsive, set this to some ridiculously small number.
 // You probably do not want to tamper with this setting. As many things in TTQ-T4 are assuming its set to 10 seconds.
-var CHECK_TASKS_EVERY = 20;
+var CHECK_TASKS_EVERY = 60;
 
 // Set this to the server's url to override automatic server detection (i.e. s1.travian.net)
 // Don't set it if you're playing on multiple servers simultaneously!
@@ -1586,9 +1586,6 @@ function createCustomMerchantSenderLinks(){
     oLink.addEventListener('click', reFillStorageHandler, false);
 }
 
-
-
-
 //CUSTOM
 function getVillageNamesAndZIDs(){
 	var map = {};
@@ -1662,7 +1659,8 @@ function reFillStorageHandler(){
         var coordToZ = coordsXYToZ(targetVillageCoord[0],targetVillageCoord[1]);
         var _1day = 1000 *60 *60 *24;
         var oDate =Math.floor((new Date().getTime()- _1day)/1000 );
-        setTask(taskID,oDate,coordToZ,options, undefined, sourceVillageID);
+		setTask(taskID,oDate,coordToZ,options, undefined, sourceVillageID);
+		checkSetTasks();
     }else{
         console.log("ERROR could not determine target village coord");
     }
@@ -4126,7 +4124,7 @@ function onLoad() {
 	//CUSTOM
 	if( /build.php/.test(crtPath) ) { putCustomSendResourceFromVillageLink() }
 
-    createCustomMerchantSenderLinks()
+	createCustomMerchantSenderLinks();
 	if (iSiteId > -1 && tA.test(window.location.href)) {
 		createBuildLinks();
 
