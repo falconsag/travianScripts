@@ -948,7 +948,6 @@ function checkSetTasks() {
 //-- }
 	//CUSTOM
 	var activeVillageBeforeTrigger = currentActiveVillage;
-	var anyTaskExecuted = false;
 	if ( aTasks != "" ) { 
 		aTasks = aTasks.split("|");
 		var skipVillagesSet = new Set();
@@ -968,8 +967,11 @@ function checkSetTasks() {
                 if(result != "fail"){
 					aTasks.splice(indexecske, 1);  //delete this task
 					refreshTaskList(aTasks);
-					anyTaskExecuted = true;
-					indexecske--;
+					aTasks = aTasks.join("|");
+					setVariable("TTQ_TASKS", aTasks);
+					switchActiveVillage(activeVillageBeforeTrigger);
+					bLocked = false;
+					return true;
 				}else{
 					//only if an upgrade job failed adding the village to skip
 					if(taskType== "0"){
@@ -979,15 +981,9 @@ function checkSetTasks() {
 				}
 			}
 		}
-		aTasks = aTasks.join("|");
-		setVariable("TTQ_TASKS", aTasks);
 	}
 	bLocked = false;
-	if(anyTaskExecuted){
-		switchActiveVillage(activeVillageBeforeTrigger);
-		return true;
-	}
-
+	switchActiveVillage(activeVillageBeforeTrigger);
 	tA = getOption("RELOAD_AT", 0, "integer");
 	if ( tA > 0 ) {
 		if( tA <= oDate ) {
