@@ -58,9 +58,9 @@
         el.setAttribute('size', size);
         return el;
     }
-    function $opt(labelName,labelValue){ 
+    function $opt(labelName,labelValue){
         var label = document.createTextNode(labelName);
-        var opt = document.createElement('option'); 
+        var opt = document.createElement('option');
         opt.setAttribute('value', labelValue);
         opt.appendChild(label);
         return opt;
@@ -197,11 +197,8 @@ function xpath(query, object, qt) { // Searches object (or document) for string/
 /**************************************************************************
  * @param options: [aTask, iCurrentActiveVillage] (optional)  OR sNewdid in case of finding the code for construction.
  ***************************************************************************/
-function get(url, callback, options, respType, async) {
-	var httpRequest = new XMLHttpRequest();	
-	if( !(typeof respType === 'undefined' || respType === null) ){
-		httpRequest.responseType = respType;
-	}
+function get(url, callback, options, async) {
+	var httpRequest = new XMLHttpRequest();
 	if(callback) {
 		httpRequest.onreadystatechange = function() {
 				callback(httpRequest, options);
@@ -951,17 +948,16 @@ function checkSetTasks() {
 //-- }
 	if ( aTasks != "" ) {
 		aTasks = aTasks.split("|");
-		for( tX = 0, tY = aTasks.length ; tX < tY ; ++tX) {
-			aThisTask = aTasks[tX].split(",");
-
+		for( indexecske = 0, tY = aTasks.length ; indexecske < tY ; ++indexecske) {
+			aThisTask = aTasks[indexecske].split(",");
 		// The stored time (Unix GMT time) should be compared against the GMT time, not local!
 			if(aThisTask[1] <= oDate) {
-				_log(1, "CheckSetTasks> Triggering task: " + aTasks[tX]);
+				_log(1, "CheckSetTasks> Triggering task: " + aTasks[indexecske]);
 				var result = null;
 				var activeVillageBeforeTrigger = currentActiveVillage;
-                result = triggerTask(aThisTask);
+				result = triggerTask(aThisTask);
                 if(result != "fail"){
-					aTasks.splice(tX, 1);  //delete this task
+					aTasks.splice(indexecske, 1);  //delete this task
 					refreshTaskList(aTasks);
 					aTasks = aTasks.join("|");
 					setVariable("TTQ_TASKS", aTasks);
@@ -1587,17 +1583,17 @@ function getVillageNamesAndZIDs(){
         var villages = $gt('li',vlist);
         for ( var vn = 0; vn < villages.length; vn++ ) {
 			var linkEl = $gt("a",villages[vn])[0];
-			
+
 			var villageName = $gc("name",linkEl)[0].textContent;
 			linkVSwitch[vn] = linkEl.getAttribute('href');
-			
+
 			var nd = parseInt(linkVSwitch[vn].match(/newdid=(\d+)/)[1]);
 			var myVid = getVidFromCoords(linkEl.innerHTML);
 			var wrapper = {};
 			wrapper.vid = myVid;
 			wrapper.id = nd;
 			map[villageName] = wrapper;
-			
+
         }
 	}
 	//CUSTOMIZE FONTOS töltsd ki a market id-ket, hogy melyik faluba hol van
@@ -2991,12 +2987,10 @@ function handleMerchantRequest1(httpRequest, aTask) {
 			var parser = new DOMParser();
 			var dpcc = parser.parseFromString(httpRequest.responseText, "text/html");
 			getResources(dpcc);
-			console.log("KURVANYÁD MÁR");
-			console.log(resNow);
 			if ( tInputs.length > 3 && holder.getElementsByClassName("gid17").length == 1 && reqVID == oldVID ) {
 				var maxM = 20;
 				var maxC = 500;
-				
+
 				tX = [500,1000,750];
 				tY = getOption("RACE", -1, "integer");
 				if( tY > -1 ) maxC = tX[tY];
@@ -3594,13 +3588,11 @@ function getResources (aDoc) {
 		try { var resources={};
 			var fullScr = $xf('//script[contains(text(),"resources.production")]',undefined,aDoc,aDoc).innerHTML;
 			var r1 = fullScr.match(/resources.production\s=[\s\S]+};/);
-			
+
             eval(r1[0]);
         } catch(e) {  }
         for( var i = 0; i < 4; i++ ) {
 			var wholeRes = $g("l" + (1+i),aDoc);
-			console.log("ittvan:" +wholeRes);
-			console.log(wholeRes);
             if( ! wholeRes ) return false;
             if( typeof resources != 'undefined' )
                 income[i] = resources.production['l'+(1+i)];
@@ -3617,7 +3609,7 @@ function getResources (aDoc) {
             fullRes[i] = resources.maxStorage['l'+(1+i)];
         }
         resNow = iresNow.slice();
-        
+
         //incomeba lesz listaként a 4 nyersi
         //console.log(income);
     return true;
@@ -4181,21 +4173,21 @@ function putCustomSendResourceFromVillageLink(){
 			if(newD != null){
 				var map = getVillageNamesAndZIDs();
 				var el = $sel('akarmi', Object.keys(map).length);
-				for(var villageName in map) { 
-					var villageZID = map[villageName]; 
+				for(var villageName in map) {
+					var villageZID = map[villageName];
 					var option = $opt(villageName,villageZID);
 					el.appendChild(option);
 				}
-				el.addEventListener('change', function() { 
+				el.addEventListener('change', function() {
 					var selectedVillageName = el.options[el.selectedIndex].text;
 					var selectedVillageZID = el.options[el.selectedIndex].value;
-				}	  
+				}
 					);
 				if( wfl || baseCosts.snapshotItem(i).parentNode.getAttribute("class") != "details" ){
 					var childOfThisElement = $gc('showCosts',baseWrap.snapshotItem(j))[0];
 					var sendFromLink = $a('Küldés ebből a faluból',[['href',jsVoid],['dir','ltr']]);
-					childOfThisElement.appendChild( el );	
-					childOfThisElement.appendChild( sendFromLink);	
+					childOfThisElement.appendChild( el );
+					childOfThisElement.appendChild( sendFromLink);
 
 					/*
 					if (typeof targetVillageCoord !== 'undefined'){
@@ -4203,7 +4195,7 @@ function putCustomSendResourceFromVillageLink(){
 						var taskID= 7;//merchant taskID
 						var target = 0;//ez maradjon 0..
 						var options = targetVillageCoord[0] + "_" + targetVillageCoord[1] + "_" + RB[0] + "_" + RB[1] + "_" + RB[2] + "_" + RB[3] + "_" + marketPlaceID;
-				
+
 						var coordToZ = coordsXYToZ(targetVillageCoord[0],targetVillageCoord[1]);
 						var _1day = 1000 *60 *60 *24;
 						var oDate =Math.floor((new Date().getTime()- _1day)/1000 );
@@ -4219,7 +4211,7 @@ function putCustomSendResourceFromVillageLink(){
 
 
 
-				} 
+				}
 			}
 			//addNPC(baseCosts.snapshotItem(i));
 		}
@@ -4238,7 +4230,7 @@ function sendFromShow( base ) {
 		if (wantsRes < 0) {
 			wantsResMem[e] = Math.abs(wantsRes);
 			wfl = true;
-		}	
+		}
 	}
 	if (wfl == true){
 		return wantsResMem;
