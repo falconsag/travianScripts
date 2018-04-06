@@ -1530,6 +1530,7 @@ function makeHistoryRow(aTask, index/*, iServerTimeOffset*/) {
 
 // ****** BEGIN TTQ TASK FUNCTIONS ******
 // *** Begin Build/Upgrade Functions ***
+//CUSTOM added schedule NOW linkbutton
 function createBuildLinks() {
 	_log(3,"Begin createBuildLinks()");
 	var iTask = 0;  //the default action is build new building on empty site
@@ -1566,7 +1567,18 @@ function createBuildLinks() {
 		var eParam = window.location.search.replace(/[&?](newdid|gid|id|z|d|x|y)=\d+/g,'').replace("?","&");
 		oLink.setAttribute("soptions", bID + "_" + bName + (eParam.length > 1 ? "_" + eParam: "") );
 		ttqAddEventListener(oLink, 'click', displayTimerForm, false);
+
+		//adding MOST button to schedule now
+		var oLink2 = document.createElement("a");
+		oLink2.id = "buildLater" + i;
+		oLink2.innerHTML = "&ndash; " + "MOST" + " &ndash;";
+		oLink2.title = aLangStrings[4];
+		var bOptions = bID + "_" + bName + (eParam.length > 1 ? "_" + eParam: "");
+		ttqAddEventListener(oLink, 'click', function() {
+			setTask(iTask, Math.floor(new Date()/1000), iSiteId, bOptions);	
+		}, false);
 		bBuildDesc.appendChild(oLink);
+		oLink.appendChild(oLink2);
     }
 	_log(3, "End createBuildLinks()");
 }
