@@ -43,6 +43,7 @@
 
     notRunYet = false;
 
+    var globalCustomSum = 0;
     var homepageurl = 'https://greasyfork.org/scripts/5923-travian-resource-bar-plus';
     var audiofile = 'http://soundsplanet.com/authors/1001/tracks/touch_tone1.mp3';
     var bgcolor = ['#66ff66','yellow','red']; //resource bar colors
@@ -2948,6 +2949,7 @@
 
         var forNPC = [0,0];
         var beforeThis = $e('DIV');
+        globalCustomSum = 0;
         for (var e = 0; e < 4; e++) {
             wantsResMem[e+5] = parseInt(neededRes[e+1]);
             wantsResMemP[e+5] = parseInt(wantsResMemP[e+5]) + wantsResMem[e+5];
@@ -2963,11 +2965,13 @@
                 else
                     beforeThis.appendChild($ee('SPAN','+'+ wantsRes +' ',[['style','color:green;']]));
             } else {
+                globalCustomSum += wantsRes;
                 beforeThis.appendChild($em('SPAN',[wantsRes + ' (',(income[e] > 0 ? showPlusTimer(): '--:--'),') '],[['style','color:red;']]));
                 wantsResMem[e] = Math.abs(wantsRes);
                 wfl = true;
             }
         }
+
         if( RB.Setup[11] > 0 && forNPC[0] < 0 ) {
             var j=timerB.length;
             timerB[j] = new Object();
@@ -9144,11 +9148,13 @@
             var newTbl = $ee('TABLE',actualKepzesiIdo,[['class',allIDs[7]],['style','background-color:#FAFAFF;']]);
             var newT = needed_show( wantD );
             var newR = $ee('TR',$c(newT,[['colspan',2]]));
+            var sumResNeeded  = $ee('TR',$c(globalCustomSum * -1,[['colspan',2]]));
             newTbl.appendChild(sumKepzesiIdo);
             newTbl.appendChild(newR);
+            newTbl.appendChild(sumResNeeded)
             closeWindowN(9);
             var xy = offsetPosition(this);
-            windowID[9] = makeFloat(newTbl,xy[0]-(ltr?100:300),xy[1]-70);
+            windowID[9] = makeFloat(newTbl,xy[0]-(ltr?100:300),xy[1]-90);
         }
         function closeTip () {
             closeWindowN(9);
