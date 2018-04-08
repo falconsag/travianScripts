@@ -198,10 +198,11 @@ function xpath(query, object, qt) { // Searches object (or document) for string/
  * @param options: [aTask, iCurrentActiveVillage] (optional)  OR sNewdid in case of finding the code for construction.
  ***************************************************************************/
 function get(url, callback, options, async) {
+	var result = "fail";
 	var httpRequest = new XMLHttpRequest();
 	if(callback) {
 		httpRequest.onreadystatechange = function() {
-				callback(httpRequest, options);
+			result = callback(httpRequest, options);
 		};
 	}
 	if(typeof(async) != 'undefined' && async != null){
@@ -210,9 +211,11 @@ function get(url, callback, options, async) {
 		httpRequest.open("GET", url, true);
 	}
 	httpRequest.send(null);
+	return result;
 }
 
 function post(url, data, callback, options,async) {
+	var result = "fail";
 	var httpRequest = new XMLHttpRequest();
 	data = encodeURI(data);
 	if(typeof(async) != 'undefined' && async != null){
@@ -221,11 +224,12 @@ function post(url, data, callback, options,async) {
 		httpRequest.open("POST", url, true);
 	}
 	httpRequest.onreadystatechange = function() {
-		callback(httpRequest, options)
+		result = callback(httpRequest, options)
 	};
 	httpRequest.setRequestHeader("Content-type", "application/x-www-form-urlencoded; charset=utf-8");
 	httpRequest.overrideMimeType("application/xhtml+xml");
 	httpRequest.send(data);
+	return result;
 }
 
 var ajaxToken=false;
@@ -950,7 +954,8 @@ function checkSetTasks() {
 	var activeVillageBeforeTrigger = currentActiveVillage;
 	if ( aTasks != "" ) { 
 		aTasks = aTasks.split("|");
-		var skipVillagesSet = new Set();
+		var skipVillagesUpgradeSet = new Set();
+		var skipVillagesDemolishSet = new Set();
 		for( indexecske = 0, tY = aTasks.length ; indexecske < tY ; ++indexecske) {
 			aThisTask = aTasks[indexecske].split(",");
 		// The stored time (Unix GMT time) should be compared against the GMT time, not local!
@@ -958,7 +963,10 @@ function checkSetTasks() {
 				var currVillageId = aThisTask[4];
 				var taskType = aThisTask[0];
 				console.log("checking village: "+ currVillageId);
-				if(taskType == "0" && skipVillagesSet.has(currVillageId)){
+				if(taskType == "0" && skipVillagesUpgradeSet.has(currVillageId)){
+					continue;
+				}
+				if(taskType == "6" && skipVillagesDemolishSet.has(currVillageId)){
 					continue;
 				}
 				_log(1, "CheckSetTasks> Triggering task: " + aTasks[indexecske]);
@@ -975,8 +983,10 @@ function checkSetTasks() {
 				}else{
 					//only if an upgrade job failed adding the village to skip
 					if(taskType== "0"){
-						skipVillagesSet.add(currVillageId);
-						console.log("task failing, adding id to villages to skip");
+						skipVillagesUpgradeSet.add(currVillageId);
+					}
+					if(taskType== "6"){
+						skipVillagesDemolishSet.add(currVillageId);
 					}
 				}
 			}
@@ -1072,13 +1082,11 @@ function refreshTaskList(aTasks) {
 
 	//CUSTOME
 	//rendezzük a taskokat hogy előre kerüljön a legkorábbi
-	console.log("sort előtt: "+ aTasks);
 	aTasks.sort(function(a, b){
 		var aTaskParts = a.split(",");
 		var bTaskParts = b.split(",");
 		return parseInt(aTaskParts[1]) - parseInt(bTaskParts[1])
 	});
-	console.log("sort után: "+ aTasks);
 
 	//elmentjük a taskokat
 	data = aTasks.join("|");
@@ -1328,7 +1336,7 @@ function triggerTask(aTask) {
 			party(aTask);
 			break;
 		case "6": //demolish building[ALPHA]
-			demolish(aTask);
+			result = demolish(aTask);
 			break;
 		case "7": //send merchants
 			merchant(aTask);
@@ -1584,19 +1592,41 @@ function createBuildLinks() {
 }
 
 //CUSTOM
-function createCustomMerchantSenderLinks(){
+function createCustomMerchantSenderLink(){
     //kirakjuk a gombot, ami ha rákattintanak berak egy taszkot hogy a source villageből annyi nyersi legyen
     //áttalicskázva amennyi teljesen megölti az aktuális falu raktárát
     var beszurni = xpath("//div[@class='playerName']");
     var beszurniSnapshot = beszurni.snapshotItem(0);
     var oLink = document.createElement("a");
-    oLink.id = "buildLater";
-    oLink.title ="apukad";
-    oLink.innerHTML = "Ujratöltés 90%-ig";
+    oLink.id = "refill90pc";
+    oLink.title ="refill";
+    oLink.innerHTML = "Refill to 90%";
     beszurniSnapshot.appendChild(document.createElement("br"));
     beszurniSnapshot.appendChild(oLink);
     oLink.addEventListener('click', reFillStorageHandler, false);
 }
+
+//CUSTOM
+function createScheduleTroopsLink(){
+    var beszurni = xpath("//div[@class='playerName']");
+    var beszurniSnapshot = beszurni.snapshotItem(0);
+    var oLink = document.createElement("a");
+    oLink.id = "scheduleTroopsInAllVillages";
+    oLink.title ="troops";
+    oLink.innerHTML = "scheduleTroopsInAllVillages";
+    beszurniSnapshot.appendChild(document.createElement("br"));
+    beszurniSnapshot.appendChild(oLink);
+    oLink.addEventListener('click', function(){
+		var data = getVariable("TTQ_TASKS");
+		var aTasks = data.split("|");
+		var lastTask = aTasks[aTasks.length-1];
+		var lastTaskTime = lastTask.split(",")[1];
+
+		var timeDiff = new Date()/1000 - lastTaskTime;
+	}, false);
+}
+
+
 
 //CUSTOM
 function getVillageNamesAndZIDs(){
@@ -1619,13 +1649,17 @@ function getVillageNamesAndZIDs(){
 
         }
 	}
-	//CUSTOMIZE FONTOS töltsd ki a market id-ket, hogy melyik faluba hol van
+	//CUSTOMIZE FONTOS töltsd ki a market id-ket, hogy melyik faluba hol van,TODO
 	map['01'].marketID = 35;
 	map['02'].marketID = 35;
 	map['03'].marketID = 35;
 	map['04'].marketID = 35;
 	map['05'].marketID = 35;
-map['06'].marketID = 35;
+	map['06'].marketID = 35;
+	map['07'].marketID = 35;
+	map['08'].marketID = 35;
+	map['09'].marketID = 33;
+	map['10'].marketID = 36;
 	return map;
 }
 
@@ -1746,10 +1780,8 @@ function upgradebuild(aTask) {
 								tmp = tmp[0].getAttribute("onclick").split("'")[1];
 								if ( tmp ) {
 									_log(2, "UpgradeBuild> Posting Build/Upgrade request...\nhref> " + tmp + "\nmyOptions> " + aTask);
-                                    get(fullName+tmp, handleRequestBuild, aTask);
-                                    result = "success";
-                                    _log(1, "Itt1" + result);
-									return;
+									result = get(fullName+tmp, handleRequestBuild, aTask,false);
+									return result;
 								}
 								if ( reqVID != currentActiveVillage ) switchActiveVillage(currentActiveVillage);
 								_log(1, "UpgradeBuild> Found the button but could not find the link for Build/Upgrade! (No Link 1)");
@@ -1786,11 +1818,12 @@ function upgradebuild(aTask) {
 			}
 		}
 		httpRequest.send(null);
-    _log(3, "UpgradeBuild> End. aTask = ("+aTask+")");
+	_log(3, "UpgradeBuild> End. aTask = ("+aTask+")");
     return result;
 }
 
 function handleRequestBuild(httpRequest, aTask) {
+	var result = "fail";
 //	_log(0,"Begin handleRequestBuild("+httpRequest+", "+aTask+")");
 	if (httpRequest.readyState == 4) {
 		var buildingName = aTask[3].split("_")[1];
@@ -1808,13 +1841,14 @@ function handleRequestBuild(httpRequest, aTask) {
 			if( bL.length < 1 ) {
 				printMsg(getVillageName(oldVID)+ "<br>" + buildingName + ' ' + aLangStrings[8] + " ("+aLangStrings[75]+")", true); // Your building can't be built.
 				addToHistory(aTask, false, aLangStrings[75]);
-				return;
+				return result;
 			}
 
 			if ( thisNewdid == oldVID ) {
 				if ( bL[0].innerHTML.match(re) ) {
 					printMsg(getVillageName(oldVID)+ "<br>" + aLangStrings[5] +' '+ buildingName);  //Your building is being built.
 					addToHistory(aTask, true);
+					result = "success";
 				} else {
 					printMsg(getVillageName(oldVID)+ "<br>" + buildingName + ' ' + aLangStrings[8] + " ("+aLangStrings[75]+")", true); // Your building can't be built.
 					addToHistory(aTask, false, aLangStrings[75]);
@@ -1829,7 +1863,7 @@ function handleRequestBuild(httpRequest, aTask) {
 					addToHistory(aTask, false, aLangStrings[74]+" "+aLangStrings[11]+" 2");
 				}
 			}
-			return;
+			return result;
 		}
 		switchActiveVillage(currentActiveVillage);
 		_log(1, "handleRequestBuild> Request to build was sent, however, I could not confirm the building (gid="+buildingID+") was built. The server returned a non-200 code (or the request was empty) while loading the page to confirm on.  ("+aLangStrings[74] +" "+ aLangStrings[46]+" 2)");
@@ -1837,6 +1871,7 @@ function handleRequestBuild(httpRequest, aTask) {
 		addToHistory(aTask, false, aLangStrings[74] +" "+ aLangStrings[46]+" 2");
 	}
 	_log(3, "End handleRequestBuild("+httpRequest+", "+aTask+")");
+	return result;
 }
 // *** End Build/Upgrade Functions ***
 
@@ -2836,6 +2871,7 @@ function scheduleDemolish(e) {
 }
 
 function demolish(aTask) {
+	var result = "fail";
 	_log(3,"Begin demolish("+aTask+")");
 	var aTaskDetails = getTaskDetails(aTask);
 	printMsg(aLangStrings[6] + " > 1<br><br>" + aTaskDetails);
@@ -2848,7 +2884,7 @@ function demolish(aTask) {
 	//Loading the page once first, changing the active village at the same time
 	var httpRequest = new XMLHttpRequest();
 	var httpRequestString = fullName+"build.php?" + sNewDid + "gid=15";
-	httpRequest.open("GET", httpRequestString, true);
+	httpRequest.open("GET", httpRequestString, false);
 	httpRequest.onreadystatechange = function() {
 		if (httpRequest.readyState == 4) { //complete
 			printMsg(aLangStrings[6] + " > 1 > 2<br><br>" + aTaskDetails);
@@ -2867,7 +2903,7 @@ function demolish(aTask) {
 						_log(1, "Demolish Building request was not sent. It appears we were already busy destroying a building. (No Link 1: "+tmp2+")");
 						printMsg(aTaskDetails+" "+aLangStrings[68]+" "+aLangStrings[64]+" ("+aLangStrings[70]+" 1: "+tmp2+")", true); // Your building can't be demolished. No Link - Something is already being destroyed
 						addToHistory(aTask, false, aLangStrings[70]+" 1: "+tmp2);
-						return;
+						return result;
 					}
 
 					tmp2 = holder.getElementsByClassName("demolish_building");
@@ -2877,20 +2913,20 @@ function demolish(aTask) {
 						tmp = tmp2.getElementsByTagName("input");
 						for ( var i = 0, k = tmp.length ; i < k ; ++i ) sParams += tmp[i].name + "=" + tmp[i].value + "&";
 						sParams += tmp2.getElementsByTagName("select")[0].name + "=" + aTask[2];
-						post(fullName+"build.php", sParams, handleRequestDemolish, aTask);
-						return;
+						result = post(fullName+"build.php", sParams, handleRequestDemolish, aTask, false);
+						return result;
 					}
 					if ( reqVID != currentActiveVillage ) switchActiveVillage ( currentActiveVillage );
 					_log(1, "Demolish Building request was not sent. I can not find the link. (No Link 2)");
 					printMsg(aTaskDetails+" "+aLangStrings[68]+" "+aLangStrings[64]+" ("+aLangStrings[70]+" 2)", true); // Your building can't be demolished. No Link (main building too small?)
 					addToHistory(aTask, false, aLangStrings[70]+" 2");
-					return;
+					return result;
 				}
 				if ( reqVID != currentActiveVillage ) switchActiveVillage ( currentActiveVillage );
 				_log(1, "Demolish Building request was not sent. It appears we were redirected when trying to load the Main Building page (Server: Redirected 1)");
 				printMsg(aTaskDetails + ' ' + aLangStrings[9]+" "+aLangStrings[64]+" ("+aLangStrings[74]+" "+aLangStrings[11]+" 1)", true); // Your building can't be demolished.
 				addToHistory(aTask, false, aLangStrings[74]+" "+aLangStrings[11]+" 1");
-				return;
+				return result;
 			}
 			switchActiveVillage ( currentActiveVillage );
 			_log(1, "Demolish Building request was not sent. Bad response from server when attempting to load the Main Building page (Server: Page Failed 1)");
@@ -2900,9 +2936,12 @@ function demolish(aTask) {
 	};
 	httpRequest.send(null);
 	_log(3,"End demolish("+aTask+")");
+	return result;
+	
 }
 
 function handleRequestDemolish(httpRequest, aTask) {
+	var result = "fail";
 	_log(3,"Begin handleRequestDemolish("+httpRequest+", "+aTask+")");
 	if (httpRequest.readyState == 4) {
 		var oldVID = parseInt(aTask[4]);
@@ -2919,23 +2958,25 @@ function handleRequestDemolish(httpRequest, aTask) {
 				if ( tmp.length > 0 ) {
 					printMsg(aTaskDetails + ' ' + aLangStrings[63]); // Your building is being demolished.
 					addToHistory(aTask, true);
-					return;
+					result = "success";
+					return result;
 				}
 				_log(1, "Demolish Building request was sent. Everything seems fine, but nothing is demolishing (Confirmation Failed, No Link 3)");
 				printMsg(aTaskDetails + ' ' + aLangStrings[64]+" "+aLangStrings[50]+" ("+aLangStrings[75]+", "+aLangStrings[70]+" 3)", true); // Your building can't be demolished.
 				addToHistory(aTask, false, aLangStrings[75]+", "+aLangStrings[70]+" 3");
-				return;
+				return result;
 			}
 			_log(1, "Demolish Building request was sent. It appears we were redirected when trying to load the Main Building page for confirmation (Confirmation Failed, Server: Redirected 2)");
 			printMsg(aTaskDetails + ' ' + aLangStrings[9]+" "+aLangStrings[64]+" ("+aLangStrings[75]+", "+aLangStrings[74]+" "+aLangStrings[11]+" 2)", true); // Your building can't be demolished.
 			addToHistory(aTask, false, aLangStrings[75]+", "+aLangStrings[74]+" "+aLangStrings[11]+" 2");
-			return;
+			return result;
 		}
 		switchActiveVillage(currentActiveVillage);
 		_log(1, "Demolish Building request was sent. Bad response from server when attempting to load the Main Building page for confirmation (Confirmation Failed, Server: Page Failed 2)");
 		printMsg(aTaskDetails + ' ' + aLangStrings[64]+" ("+aLangStrings[75]+", "+aLangStrings[74]+" "+aLangStrings[46]+" 2)", true); // Your building can't be demolished.
 		addToHistory(aTask, false, aLangStrings[75]+", "+aLangStrings[74]+" "+aLangStrings[46]+" 2");
 	}
+	return result;
 }
 // *** End Demolish Functions ***
 
@@ -4136,7 +4177,8 @@ function onLoad() {
 	//CUSTOM
 	if( /build.php/.test(crtPath) ) { putCustomSendResourceFromVillageLink() }
 
-	createCustomMerchantSenderLinks();
+	createCustomMerchantSenderLink();
+	createScheduleTroopsLink();
 	if (iSiteId > -1 && tA.test(window.location.href)) {
 		createBuildLinks();
 
