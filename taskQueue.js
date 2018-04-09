@@ -111,7 +111,7 @@ var LOG_LEVEL = 0; // 0 - quiet, 1 - nearly quite, 2 - verbose, 3 - detailed
 // How often do we check for tasks to trigger in seconds. Default is 10 secs.
 // Low value = high accuracy in triggering tasks. To make your browser unresponsive, set this to some ridiculously small number.
 // You probably do not want to tamper with this setting. As many things in TTQ-T4 are assuming its set to 10 seconds.
-var CHECK_TASKS_EVERY = 60;
+var CHECK_TASKS_EVERY = 30;
 
 // Set this to the server's url to override automatic server detection (i.e. s1.travian.net)
 // Don't set it if you're playing on multiple servers simultaneously!
@@ -954,16 +954,24 @@ function checkSetTasks() {
 	var activeVillageBeforeTrigger = currentActiveVillage;
 	if ( aTasks != "" ) { 
 		aTasks = aTasks.split("|");
-		var skipVillagesUpgradeSet = new Set();
+		var skipVillagesFieldUpgradeSet = new Set();
 		var skipVillagesDemolishSet = new Set();
+		var skipVillagesBuildingUpgradeSet = new Set();
 		for( indexecske = 0, tY = aTasks.length ; indexecske < tY ; ++indexecske) {
 			aThisTask = aTasks[indexecske].split(",");
 		// The stored time (Unix GMT time) should be compared against the GMT time, not local!
 			if(aThisTask[1] <= oDate) {
 				var currVillageId = aThisTask[4];
 				var taskType = aThisTask[0];
-				console.log("checking village: "+ currVillageId);
-				if(taskType == "0" && skipVillagesUpgradeSet.has(currVillageId)){
+				var taskSiteID =  parseInt(aThisTask[2]);
+				if(taskType == "0" && taskSiteID <= 18 && skipVillagesFieldUpgradeSet.has(currVillageId)){
+					//if it's an upgrade task, it's a resource field and there was already a failing resource field
+					//upgrade attempt skip this
+					continue;
+				}
+				if(taskType == "0" && taskSiteID > 18 && skipVillagesBuildingUpgradeSet.has(currVillageId)){
+					//if it's an upgrade task, it's a resource field and there was already a failing resource field
+					//upgrade attempt skip this
 					continue;
 				}
 				if(taskType == "6" && skipVillagesDemolishSet.has(currVillageId)){
@@ -982,10 +990,15 @@ function checkSetTasks() {
 					return true;
 				}else{
 					//only if an upgrade job failed adding the village to skip
-					if(taskType== "0"){
-						skipVillagesUpgradeSet.add(currVillageId);
+					if(taskType== "0" && taskSiteID <= 18){
+						//if failed and was a resource upgrade, add to the correct set
+						skipVillagesFieldUpgradeSet.add(currVillageId);
 					}
-					if(taskType== "6"){
+					if(taskType== "0" && taskSiteID > 18){
+						//if failed and was a resource upgrade, add to the correct set
+						skipVillagesBuildingUpgradeSet.add(currVillageId);
+					}
+					if(taskType == "6"){
 						skipVillagesDemolishSet.add(currVillageId);
 					}
 				}
