@@ -34,6 +34,13 @@
 
 (function () {
 
+	var ADD_FAILED_BUILD_TO_HISTORY = 0;
+	var LOG_LEVEL = 0; // 0 - quiet, 1 - nearly quite, 2 - verbose, 3 - detailed
+	// How often do we check for tasks to trigger in seconds. Default is 10 secs.
+	// Low value = high accuracy in triggering tasks. To make your browser unresponsive, set this to some ridiculously small number.
+	// You probably do not want to tamper with this setting. As many things in TTQ-T4 are assuming its set to 10 seconds.
+	var CHECK_TASKS_EVERY = 30;
+
     var iresNow = [];
     var income = [];
     var incomepersecond = [];
@@ -106,12 +113,7 @@ if ( (strTitle.indexOf("500 ") > -1 ) || (strTitle.indexOf("502 ") > -1 ) || (st
 /*********************
  *		Settings
  *********************/
-var LOG_LEVEL = 0; // 0 - quiet, 1 - nearly quite, 2 - verbose, 3 - detailed
 
-// How often do we check for tasks to trigger in seconds. Default is 10 secs.
-// Low value = high accuracy in triggering tasks. To make your browser unresponsive, set this to some ridiculously small number.
-// You probably do not want to tamper with this setting. As many things in TTQ-T4 are assuming its set to 10 seconds.
-var CHECK_TASKS_EVERY = 30;
 
 // Set this to the server's url to override automatic server detection (i.e. s1.travian.net)
 // Don't set it if you're playing on multiple servers simultaneously!
@@ -929,7 +931,9 @@ function checkSetTasks() {
 
 	if ( ttqBusyTask != 0 ) {
 		printMsg(getVillageName(parseInt(ttqBusyTask[4]))+ "<br>" + getTaskDetails(ttqBusyTask) + " " + aLangStrings[50] + " " + aLangStrings[69] + " ("+aLangStrings[82] +")", true); // Your task may have not been built, it appeared to timeout or crash.
-		addToHistory(ttqBusyTask, false, aLangStrings[82]);
+		if (ADD_FAILED_BUILD_TO_HISTORY == 1){
+			addToHistory(ttqBusyTask, false, aLangStrings[82]);
+		}
 		ttqBusyTask = 0;
 	}
 //-- ???? ??????????????? { ?????? ????????????? ??????, ???? ??? ???????? ?????
@@ -1773,21 +1777,27 @@ function upgradebuild(aTask) {
 								{
 									_log(1, "UpgradeBuild> Found the button but it would use gold (Master Builder).");
 									printMsg(getVillageName(oldVID)+ "<br>" + buildingName + " Found the button but it would use gold (Master Builder).", true);
-									addToHistory(aTask, false, "Master Builder");
+									if(ADD_FAILED_BUILD_TO_HISTORY == 1){
+										addToHistory(aTask, false, "Master Builder");
+									}
 									return;
 								}
 								if (tmp[0].getAttribute('class')) if (tmp[0].getAttribute('class').indexOf("disabled") > -1)
 								{
 									_log(1, "UpgradeBuild> Found the button but its disabled because there are not enough resources.");
 									printMsg(getVillageName(oldVID)+ "<br>" + buildingName + " Found the button but its disabled because there are not enough resources", true);
-									addToHistory(aTask, false, "Not enough resources");
+									if(ADD_FAILED_BUILD_TO_HISTORY == 1){
+										addToHistory(aTask, false, "Not enough resources");
+									}
 									return;
 								}
 								if (tmp[0].getAttribute('class')) if (tmp[0].getAttribute('class').indexOf("gold") > -1)
 								{
 									_log(1, "UpgradeBuild> Found the button but its disabled because there are not enough resources.");
 									printMsg(getVillageName(oldVID)+ "<br>" + buildingName + " Found the button but its disabled because there are not enough resources", true);
-									addToHistory(aTask, false, "Not enough resources");
+									if(ADD_FAILED_BUILD_TO_HISTORY == 1){
+										addToHistory(aTask, false, "Not enough resources");
+									}
 									return;
 								}
 								tmp = tmp[0].getAttribute("onclick").split("'")[1];
@@ -1799,7 +1809,9 @@ function upgradebuild(aTask) {
 								if ( reqVID != currentActiveVillage ) switchActiveVillage(currentActiveVillage);
 								_log(1, "UpgradeBuild> Found the button but could not find the link for Build/Upgrade! (No Link 1)");
 								printMsg(getVillageName(oldVID)+ "<br>" + buildingName + " " + aLangStrings[68]+" ("+aLangStrings[70]+" 1)", true); // Your building can't be built. because we cant find the link
-								addToHistory(aTask, false, aLangStrings[70] + " 1");
+								if(ADD_FAILED_BUILD_TO_HISTORY == 1){
+									addToHistory(aTask, false, aLangStrings[70] + " 1");ű
+								}
 								return;
 							}
 							if ( reqVID != currentActiveVillage ) switchActiveVillage(currentActiveVillage);
@@ -1809,25 +1821,33 @@ function upgradebuild(aTask) {
 							tmp = "["+tmp+"]";
 							_log(1, "UpgradeBuild> Did not find the button. Reason: " + tmp);
 							printMsg(getVillageName(oldVID)+ "<br>" + buildingName + " " + aLangStrings[68] + " (" + aLangStrings[70] + " 2: " + tmp +")", true); // Your building can't be built. Because there was no button and a reason provided.
-							addToHistory(aTask, false, aLangStrings[70] + " 2: " +tmp);
+							if(ADD_FAILED_BUILD_TO_HISTORY == 1){
+								addToHistory(aTask, false, aLangStrings[70] + " 2: " +tmp);
+							}
 							return;
 						}
 						if ( reqVID != currentActiveVillage ) switchActiveVillage(currentActiveVillage);
 						_log(1, "UpgradeBuild> Could not find the building (gid="+buildingID+") in the list of building descriptions.");
 						printMsg(getVillageName(oldVID)+ "<br>" + buildingName + " "+aLangStrings[71] +" (" + aLangStrings[72]+")", true); // Your building can't be built. Because there was no building description. Building not found.
-						addToHistory(aTask, false, aLangStrings[72]);
+						if(ADD_FAILED_BUILD_TO_HISTORY == 1){
+							addToHistory(aTask, false, aLangStrings[72]);
+						}
 						return;
 					}
 					if ( reqVID != currentActiveVillage ) switchActiveVillage(currentActiveVillage);
 					_log(1, "UpgradeBuild> Could not find the building (gid="+buildingID+") it appears we got redirected. (Server: Redirect 1)");
 					printMsg(getVillageName(oldVID)+ "<br>" + buildingName + ' (' + aLangStrings[74] +" "+aLangStrings[11]+" 1)", true); // Your building can't be built. Because there was no building description. Building not found.
-					addToHistory(aTask, false, aLangStrings[74]+" "+aLangStrings[11]+" 1");
+					if(ADD_FAILED_BUILD_TO_HISTORY == 1){
+						addToHistory(aTask, false, aLangStrings[74]+" "+aLangStrings[11]+" 1");
+					}
 					return;
 				}
 				switchActiveVillage(currentActiveVillage);
 				_log(1, "UpgradeBuild> Could not build the building (gid="+buildingID+"). The server returned a non-200 code (or the request was empty) upon trying to load the send troops page.  ("+aLangStrings[74] +" "+ aLangStrings[46]+" 1)");
 				printMsg(getVillageName(oldVID)+ "<br>" + buildingName + ' ' + aLangStrings[73] + " ("+aLangStrings[74] +" "+ aLangStrings[46]+" 1)", true); // Your building can't be built. Because there was a bad response from the server.
-				addToHistory(aTask, false, aLangStrings[74] +" "+ aLangStrings[46]+" 1");
+				if(ADD_FAILED_BUILD_TO_HISTORY == 1){
+					addToHistory(aTask, false, aLangStrings[74] +" "+ aLangStrings[46]+" 1");
+				}
 			}
 		}
 		httpRequest.send(null);
@@ -1853,7 +1873,9 @@ function handleRequestBuild(httpRequest, aTask) {
 
 			if( bL.length < 1 ) {
 				printMsg(getVillageName(oldVID)+ "<br>" + buildingName + ' ' + aLangStrings[8] + " ("+aLangStrings[75]+")", true); // Your building can't be built.
-				addToHistory(aTask, false, aLangStrings[75]);
+				if(ADD_FAILED_BUILD_TO_HISTORY == 1){
+					addToHistory(aTask, false, aLangStrings[75]);
+				}
 				return result;
 			}
 
@@ -1864,16 +1886,22 @@ function handleRequestBuild(httpRequest, aTask) {
 					result = "success";
 				} else {
 					printMsg(getVillageName(oldVID)+ "<br>" + buildingName + ' ' + aLangStrings[8] + " ("+aLangStrings[75]+")", true); // Your building can't be built.
-					addToHistory(aTask, false, aLangStrings[75]);
+					if(ADD_FAILED_BUILD_TO_HISTORY == 1){
+						addToHistory(aTask, false, aLangStrings[75]);
+					}
 				}
 			} else {
 				if ( bL[0].innerHTML.match(re) ) {
 					printMsg(getVillageName(oldVID)+ "<br>" + buildingName + ' ' + aLangStrings[76] +" ("+aLangStrings[77]+" "+getVillageName(thisNewdid)+")", true); // Your building was probably misbuilt
-					addToHistory(aTask, false, aLangStrings[77]+" "+getVillageName(thisNewdid));
+					if(ADD_FAILED_BUILD_TO_HISTORY == 1){
+						addToHistory(aTask, false, aLangStrings[77]+" "+getVillageName(thisNewdid));
+					}
 				} else {
 					_log(1, "handleRequestBuild> Could not find the building (gid="+buildingID+") it appears we got redirected. (Server: Redirect 2)");
 					printMsg(getVillageName(oldVID)+ "<br>" + buildingName + ' (' + aLangStrings[74] +" "+aLangStrings[11]+" 2)", true); // Your building can't be built. Because there was no building description. Building not found.
-					addToHistory(aTask, false, aLangStrings[74]+" "+aLangStrings[11]+" 2");
+					if(ADD_FAILED_BUILD_TO_HISTORY == 1){
+						addToHistory(aTask, false, aLangStrings[74]+" "+aLangStrings[11]+" 2");
+					}
 				}
 			}
 			return result;
@@ -1881,7 +1909,9 @@ function handleRequestBuild(httpRequest, aTask) {
 		switchActiveVillage(currentActiveVillage);
 		_log(1, "handleRequestBuild> Request to build was sent, however, I could not confirm the building (gid="+buildingID+") was built. The server returned a non-200 code (or the request was empty) while loading the page to confirm on.  ("+aLangStrings[74] +" "+ aLangStrings[46]+" 2)");
 		printMsg(getVillageName(oldVID)+ "<br>" + buildingName + ' ' + aLangStrings[73] + " ("+aLangStrings[74] +" "+ aLangStrings[46]+" 2)", true); // Your building can't be built. Because there was a bad response from the server.
-		addToHistory(aTask, false, aLangStrings[74] +" "+ aLangStrings[46]+" 2");
+		if(ADD_FAILED_BUILD_TO_HISTORY == 1){
+			addToHistory(aTask, false, aLangStrings[74] +" "+ aLangStrings[46]+" 2");
+		}
 	}
 	_log(3, "End handleRequestBuild("+httpRequest+", "+aTask+")");
 	return result;
