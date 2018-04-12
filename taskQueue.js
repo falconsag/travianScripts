@@ -93,7 +93,7 @@
         if (!startnode) startnode = document;
         var xpres = XPFirst;
         switch (xpt) {
-            case 'i': xpres = XPIterator; break;
+            case 'i': xpres = XPIterate; break;
             case 'l': xpres = XPList; break;
             case 'r': xpres = XPResult; break;
         };
@@ -984,6 +984,7 @@ function checkSetTasks() {
 				}
 				_log(1, "CheckSetTasks> Triggering task: " + aTasks[indexecske]);
 				var result = null;
+				console.log("Trying to trigger task: "+aThisTask );
 				result = triggerTask(aThisTask);
                 if(result != "fail"){
 					aTasks.splice(indexecske, 1);  //delete this task

@@ -2362,7 +2362,7 @@
         if (!startnode) startnode = document;
         var xpres = XPFirst;
         switch (xpt) {
-            case 'i': xpres = XPIterator; break;
+            case 'i': xpres = XPIterate; break;
             case 'l': xpres = XPList; break;
             case 'r': xpres = XPResult; break;
         };
@@ -4761,7 +4761,6 @@
          tblBody.appendChild(row);
 
         var listOfVillageNames = getVillageNamesAndZIDs();
-        console.log(listOfVillageNames);
         var el = $sel('akarmi', 4);
 
         for(var i = 0; i < listOfVillageNames.length; i++) {
