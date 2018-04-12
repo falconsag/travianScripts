@@ -2388,6 +2388,7 @@
 
     function $sel(name, size) {
         var el = document.createElement('select');
+        el.setAttribute('multiple', 'multiple');
         el.setAttribute('name', name);
         el.setAttribute('size', size);
         return el;
@@ -4622,6 +4623,38 @@
         }
     }
 
+
+    function getSelectValues(select) {
+        var result = [];
+        var options = select && select.options;
+        var opt;
+      
+        for (var i=0, iLen=options.length; i<iLen; i++) {
+          opt = options[i];
+      
+          if (opt.selected) {
+            result.push(opt.text);
+          }
+        }
+        return result;
+      }
+
+    function getVillageNamesAndZIDs(){
+        var list = [];
+        var vlist = $g("sidebarBoxVillagelist");
+        if ( vlist ) {
+            var villages = $gt('li',vlist);
+            for ( var vn = 0; vn < villages.length; vn++ ) {
+                var linkEl = $gt("a",villages[vn])[0];
+    
+                var villageName = $gc("name",linkEl)[0].textContent;
+                list.push(villageName);
+            }
+        }
+       return list;
+    }
+
+
     function progressbar_init() {
         calculationPPH();
         var mm = RB.Setup[22] > 0 ? normalProductionCalc( sumPPH ) : [0,0];
@@ -4724,11 +4757,28 @@
              if( j == mm[1] ) sumAttr.push(['style','color:red;']);
          }
 
-
          row.appendChild($c(sumCurrentRes,sumAttr));
          tblBody.appendChild(row);
 
+        var listOfVillageNames = getVillageNamesAndZIDs();
+        console.log(listOfVillageNames);
+        var el = $sel('akarmi', 4);
 
+        for(var i = 0; i < listOfVillageNames.length; i++) {
+            var villageName = listOfVillageNames[i];
+            var option = $opt(villageName,villageName);
+            el.appendChild(option);
+        }
+
+        var scheduleTroopsRow = $ee('TR',el);
+        var scheduleTroopsButton = $a('Schedule troops',[['href',jsVoid],['dir','ltr']]);
+        scheduleTroopsRow.appendChild($c(scheduleTroopsButton));
+        scheduleTroopsButton.addEventListener('click', function() { 
+            var selectedValues = getSelectValues(el);
+            unsafeWindow.scheduleTroopsInSelectedVillages(selectedValues);
+        }, 0);
+
+         tblBody.appendChild(scheduleTroopsRow);
 
         var alink = $a('ResourceBar+',[['href', '#'],['onclick',jsNone],['title',gtext("overview")]]);
         alink.addEventListener('click', overviewAll, false);
