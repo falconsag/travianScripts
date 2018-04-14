@@ -34,6 +34,7 @@
 
 (function () {
 
+	var RAISE_ALERT_ON_MERCHANT_ERROR = 0;
 	var ADD_FAILED_BUILD_TO_HISTORY = 0;
 	var LOG_LEVEL = 0; // 0 - quiet, 1 - nearly quite, 2 - verbose, 3 - detailed
 	// How often do we check for tasks to trigger in seconds. Default is 10 secs.
@@ -216,7 +217,7 @@ function get(url, callback, options, async) {
 	return result;
 }
 
-function post(url, data, callback, options,async) {
+function post(url, data, callback, options,async,subSolution) {
 	var result = "fail";
 	var httpRequest = new XMLHttpRequest();
 	data = encodeURI(data);
@@ -226,7 +227,11 @@ function post(url, data, callback, options,async) {
 		httpRequest.open("POST", url, true);
 	}
 	httpRequest.onreadystatechange = function() {
-		result = callback(httpRequest, options)
+		if(typeof(subSolution) != 'undefined' && subSolution != null && subSolution == true){
+			result = callback(httpRequest, options,subSolution);
+		}else{
+			result = callback(httpRequest, options)
+		}
 	};
 	httpRequest.setRequestHeader("Content-type", "application/x-www-form-urlencoded; charset=utf-8");
 	httpRequest.overrideMimeType("application/xhtml+xml");
@@ -1378,7 +1383,7 @@ function triggerTask(aTask) {
  *  Adds task to the log DIV.
  *  @param bSuccess: true if the task was successfully performed.
  ***************************************************************************/
-function addToHistory(aTask, bSuccess, tMsg) {
+function addToHistory(aTask, bSuccess, tMsg,subSolution) {
 	_log(3, "Begin Adding to history...");
 	if(iHistoryLength < 1) { return; }
 	var oldValue = ttqTrimData(getVariable("TTQ_HISTORY", ""), iHistoryLength-1, true);
@@ -1386,7 +1391,13 @@ function addToHistory(aTask, bSuccess, tMsg) {
 	var newValue = aTask[0] + ',' + aTask[1] + ',' + aTask[2] + ',' + aTask[3];
 	if(aTask[4]) newValue += ',' + aTask[4];
 	else newValue += ',' + 'null';
-	newValue += ',' + bSuccess;
+	if(subSolution == true){
+		if(bSuccess == true){
+			newValue += ',' + "subSolution";
+		}
+	}else{
+		newValue += ',' + bSuccess;
+	}
 	if(!bSuccess && tMsg) newValue += ',' + tMsg;
 	else newValue += ',' + 'null';
 	newValue = oldValue + '' + newValue;
@@ -1472,6 +1483,8 @@ function makeHistoryRow(aTask, index/*, iServerTimeOffset*/) {
 		var sTask = "";
 		var sTaskMoreInfo = "";
 		var isError = aTask[5] == "true" ? false : true;
+		var isSubSolution = aTask[5] == "subSolution";
+
 
 		switch(aTask[0]) {
 			case "0":  //build
@@ -1535,7 +1548,19 @@ function makeHistoryRow(aTask, index/*, iServerTimeOffset*/) {
 		}
 		if ( isError && aTask && aTask[6] != "null" ) sTaskSubject += " (" + aTask[6] + ")";
 
-		var sBgColor = isError ? "#FFB89F": "#90FF8F";
+
+		var sBgColor;
+
+		if(isSubSolution){
+			sBgColor = "#E08F26";
+		}else{
+			if(isError){
+				sBgColor = "#FFB89F";
+			}else{
+				sBgColor = "#90FF8F";
+			}	
+		}
+
 		oHistoryRow.style.backgroundColor = sBgColor;
 
 		oHistoryRow.innerHTML = getVillageName(aTask[4])+": <span title='" +sTaskMoreInfo+ "' style='cursor:help;' >" +sTask+ " " +sTaskSubject+ " </span><br><span class='ttq_time_village_wrapper' >" +sTime+"</span>";
@@ -3119,6 +3144,27 @@ function handleMerchantRequest1(httpRequest, aTask) {
 				_log(3,"Resources available:"+resNow.join(','));
 				var sParams = 'cmd=prepareMarketplace&';
 				var opts = aTask[3].split("_");
+				var subSolution = false;
+				if(opts[2] || opts[3] || opts[4] || opts[5]){
+					
+					//if there's any resource to send
+					if( maxC != 0){
+						//if at least there is capacity in the village
+						var sumResToSend = parseInt(opts[2]) + parseInt(opts[3]) + parseInt(opts[4]) + parseInt(opts[5]);
+						var ratio = maxC / sumResToSend;
+						if(ratio<=1){
+							//more to send than max capacity, scale down each resources
+							console.log("Scaling down FROM: " + opts[2] + "  " + opts[3] + "  " + opts[4] + "  " + opts[5]);
+							opts[2] = Math.floor(parseInt(opts[2])*ratio);
+							opts[3] = Math.floor(parseInt(opts[3])*ratio);
+							opts[4] = Math.floor(parseInt(opts[4])*ratio);
+							opts[5] = Math.floor(parseInt(opts[5])*ratio);
+							console.log("Scaling down TO: " + opts[2] + "  " + opts[3] + "  " + opts[4] + "  " + opts[5]);
+							subSolution = true;
+						}
+					}
+				}
+
 				var tX = 0;
 				for (var q = 0 ; q < tInputs.length ; ++q) {
 					switch ( tInputs[q].id ) {
@@ -3164,7 +3210,7 @@ function handleMerchantRequest1(httpRequest, aTask) {
 				aTask[5] = reqVID;
 				_log(3,"sParams:"+sParams);
 				sParams += '&ajaxToken='+getAjaxToken();
-				post(fullName+"ajax.php", sParams, handleMerchantRequest2, aTask,false);
+				post(fullName+"ajax.php", sParams, handleMerchantRequest2, aTask,false,subSolution);
 				return;
 			}
 			if ( reqVID != currentActiveVillage ) switchActiveVillage(currentActiveVillage);
@@ -3180,7 +3226,7 @@ function handleMerchantRequest1(httpRequest, aTask) {
 	}
 }
 
-function handleMerchantRequest2(httpRequest, aTask) {
+function handleMerchantRequest2(httpRequest, aTask, subSolution) {
 	if (httpRequest.readyState == 4) {
 		printMsg(aLangStrings[6] + " > 1 > 2 > 3<br><br>" + getTaskDetails(aTask));
 		var options = new Array();
@@ -3201,7 +3247,9 @@ function handleMerchantRequest2(httpRequest, aTask) {
 			//var tTime = holder.getElementsByClassName("error");
 			var tTime = marketData["data"]["errorMessage"];
 			if ( tTime.length > 0 ) {
-				alert(tTime);
+				if (RAISE_ALERT_ON_MERCHANT_ERROR == 1){
+					alert(tTime);
+				}
 				if ( reqVID != currentActiveVillage ) switchActiveVillage(currentActiveVillage);
 				//tTime = "["+tTime[0].innerHTML.split(",")[0]+"]";
 				_log(1, "handleMerchantRequest2> I could not send the Merchants. Reason: " + tTime);
@@ -3233,7 +3281,7 @@ function handleMerchantRequest2(httpRequest, aTask) {
 				sParams += "r1=" + opts[2] + "&r2=" + opts[3] + "&r3=" + opts[4] + "&r4=" + opts[5];
 				_log(3,"sParams:"+sParams);
 				sParams += '&ajaxToken='+getAjaxToken();
-				post(fullName+"ajax.php", sParams, handleMerchantRequestConfirmation, options,false);
+				post(fullName+"ajax.php", sParams, handleMerchantRequestConfirmation, options,false,subSolution);
 				return;
 			}
 			if ( reqVID != currentActiveVillage ) switchActiveVillage(currentActiveVillage);
@@ -3249,7 +3297,7 @@ function handleMerchantRequest2(httpRequest, aTask) {
 	}
 }
 
-function handleMerchantRequestConfirmation(httpRequest, options) {
+function handleMerchantRequestConfirmation(httpRequest, options, subSolution) {
 	_log(2,"handleMerchantRequestConfirmation> Begin. options = " + options);
 	if (httpRequest.readyState == 4) {
 		var aTask = options[0];
@@ -3284,9 +3332,14 @@ function handleMerchantRequestConfirmation(httpRequest, options) {
 			//	}
 			//	if ( ii == jj+1 ) {
 				if(	marketData["data"]["errorMessage"].length == 0 ) {
-					printMsg(getVillageName(oldVID)+ "<br>" + aLangTasks[7] + " >> " + oldName + " " + oldCoords + "<br>" + getMerchantInfo(aTask[3]) ); //Your merchants were sent.
+					printMsg(getVillageName(oldVID)+ "<br>" + aLangTasks[7] + " >> " + oldName + " " + oldCoords + "<br>" + getMerchantInfo(aTask[3]),undefined,subSolution ); //Your merchants were sent.
 					_log(1,"Your merchants were sent. From: " + getVillageName(oldVID) + "   To: " +oldName + " " + oldCoords + " carrying " + getMerchantInfo(aTask[3]) );
-					addToHistory(aTask, true);
+					if(typeof(subSolution) != 'undefined' && subSolution == true){
+						addToHistory(aTask, true,undefined,true);
+					}else{
+						addToHistory(aTask, true);
+					}
+					
 				} else {
 					printMsg(getVillageName(oldVID)+ "<br>" + aLangTasks[7] + " >> " + oldName + " " + oldCoords + "<br>" + getMerchantInfo(aTask[3]) + "<br>"+aLangStrings[50]+" ("+aLangStrings[75]+")",true); //Your merchants didnt send. Confirmation failed
 					_log(1,"Your merchants were NOT sent. Didnt see it on marketplace, could have actually been successfull if there was a long delay. Confirmation Failed.From: " + getVillageName(oldVID) + "   To: " +oldName + " " + oldCoords + " carrying " + getMerchantInfo(aTask[3]) );
@@ -4016,7 +4069,7 @@ function generateButton(title, callback){
 	return oBtn;
 }
 
-function printMsg(sMsg,bError) {
+function printMsg(sMsg,bError,subSolution) {
 	_log(3,"Begin printMsg()");
 	var oDate = new Date();
 	var sWhen = oDate.toLocaleString() + "\n";
@@ -4029,6 +4082,9 @@ function printMsg(sMsg,bError) {
 	// here we generate a link which closes the message //Use img tag directly
 	var sLinkClose = "<img src='" +sCloseBtn+ "' alt='["+aLangStrings[56]+"]' title='"+aLangStrings[56]+"' id='ttq_close_btn' class='ttq_close_btn' onclick='document.body.removeChild(document.getElementById(\"ttq_message\"));' />";
 	var sBgColor = (bError) ? "#FFB89F" : "#90FF8F";
+	if (subSolution == true){
+		sBgColor = "#E08F26";
+	}
 	var oMsgBox = document.createElement("div");
 	oMsgBox.innerHTML = "<div id='ttq_draghandle_msg' class='handle'>" + sLinkClose + sMsg + "</div>";
 	oMsgBox.style.backgroundColor = sBgColor;
