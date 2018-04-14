@@ -61,7 +61,8 @@
 		return null;
 	}
 	function $sel(name, size) {
-        var el = document.createElement('select');
+		var el = document.createElement('select');
+		el.setAttribute('multiple', 'multiple');
         el.setAttribute('name', name);
         el.setAttribute('size', size);
         return el;
@@ -93,7 +94,7 @@
         if (!startnode) startnode = document;
         var xpres = XPFirst;
         switch (xpt) {
-            case 'i': xpres = XPIterator; break;
+            case 'i': xpres = XPIterate; break;
             case 'l': xpres = XPList; break;
             case 'r': xpres = XPResult; break;
         };
@@ -988,6 +989,7 @@ function checkSetTasks() {
 				}
 				_log(1, "CheckSetTasks> Triggering task: " + aTasks[indexecske]);
 				var result = null;
+				console.log("Trying to trigger task: "+aThisTask );
 				result = triggerTask(aThisTask);
                 if(result != "fail"){
 					aTasks.splice(indexecske, 1);  //delete this task
@@ -1692,6 +1694,31 @@ function getVillageNamesAndZIDs(){
         }
 	}
 	//CUSTOMIZE FONTOS töltsd ki a market id-ket, hogy melyik faluba hol van,TODO
+	//defining barrack ids
+	map['01'].barrackID = 29;
+	map['02'].barrackID = 29;
+	map['03'].barrackID = 29;
+	map['04'].barrackID = 29;
+	map['05'].barrackID = 29;
+	map['06'].barrackID = 29;
+	map['07'].barrackID = 33;
+	map['08'].barrackID = 27;
+	map['09'].barrackID = 36;
+	map['10'].barrackID = 29;
+	map['11'].barrackID = 29;
+
+	//defining troops to build types
+	map['02'].troopType = 't';
+	map['03'].troopType = 't';
+	map['04'].troopType = 'l';
+	map['05'].troopType = 't';
+	map['06'].troopType = 'l';
+	map['07'].troopType = 'l';
+	map['08'].troopType = 't';
+	map['09'].troopType = 't';
+
+
+	//defining market ids
 	map['01'].marketID = 35;
 	map['02'].marketID = 35;
 	map['03'].marketID = 35;
@@ -2749,6 +2776,7 @@ function scheduleTraining(e) {
 
 	//get the code
 	var iCode = xpath("//form//input[@name='z']");
+	
 	if(iCode.snapshotLength > 0) aTroops[0] = iCode.snapshotItem(0).value;
 	else {
 		_log(3, "ScheduleTraining> No code available. Exiting.");
@@ -2780,7 +2808,7 @@ function train(aTask) {
 	var troopsInfo = getTroopsInfo(aTroops);
 	var oldGid = parseInt(aTroops[13]);
 	var httpRequest = new XMLHttpRequest();
-	httpRequest.open("GET", fullName+"build.php?" + (oldVID>0?"newdid=" + oldVID:"") + residenceTab1 + "&id=" + aTask[2], true);
+	httpRequest.open("GET", fullName+"build.php?" + (oldVID>0?"newdid=" + oldVID:"") + residenceTab1 + "&id=" + aTask[2], false);
 	httpRequest.onreadystatechange = function() {
 		if (httpRequest.readyState == 4) { //complete
 			printMsg(aLangStrings[6] + " > 1 > 2<br><br>" + getTaskDetails(aTask));
@@ -2823,7 +2851,7 @@ function train(aTask) {
 							return;
 						}
 						_log(2, "Train>posting>sParams>" + sParams + "<");
-						post(fullName+"build.php"+residenceTab2, sParams, handleRequestTrain, aTask);
+						post(fullName+"build.php"+residenceTab2, sParams, handleRequestTrain, aTask,false);
 						return;
 					}
 					if ( reqVID != currentActiveVillage ) switchActiveVillage(currentActiveVillage);
@@ -4327,6 +4355,81 @@ function onLoad() {
 	_log(1, "End onLoad()");
 }
 
+function getSelectValues(select) {
+	var result = [];
+	var options = select && select.options;
+	var opt;
+  
+	for (var i=0, iLen=options.length; i<iLen; i++) {
+	  opt = options[i];
+  
+	  if (opt.selected) {
+		result.push(opt.text);
+	  }
+	}
+	return result;
+  }
+
+function getLegioOptions(count){
+	return '80b842_'+count+'_0_0_0_0_0_0_0_0_0_0_0_19_-1_-1_-1';
+}
+function getTestorOptions(count){
+	return '80b842_0_'+count+'_0_0_0_0_0_0_0_0_0_0_19_-1_-1_-1';
+}
+
+function wait(ms){
+	var start = new Date().getTime();
+	var end = start;
+	while(end < start + ms) {
+	  end = new Date().getTime();
+   }
+ }
+
+
+unsafeWindow.scheduleTroopsInSelectedVillages = function(selectedVillages) {
+	bLocked = true;
+	var villages = getVillageNamesAndZIDs();
+	var _1day = 1000 *60 *60 *24;
+    var oDate =Math.floor((new Date().getTime()- _1day)/1000 );
+	if (typeof(selectedVillages) != 'undefined' && selectedVillages != null){
+		var count = 0;
+		for(var i = 0; i < selectedVillages.length; i++) {
+			var villageName = selectedVillages[i];
+			var villageStruct = villages[villageName];
+			var taskTrain = [];
+			
+			if(notUndefinedNotNull(villageStruct.troopType)){
+				taskTrain.push('4');
+				taskTrain.push(''+oDate);
+				taskTrain.push(''+villageStruct.barrackID);
+				if(villageStruct.troopType =='l'){
+					taskTrain.push(getLegioOptions(300));
+				}else if (villageStruct.troopType =='t'){
+					taskTrain.push(getTestorOptions(300));
+				}else{
+					console.log("WARNING troop type is unknown for village: "+ villageName + " continue with next village");
+					continue;
+				}
+				taskTrain.push(''+villageStruct.id);
+				console.log('INFO starting train in: ' + villageName)
+				train(taskTrain);
+				console.log('INFO finishing train: '  + villageName)
+				wait(1500);
+			}else{
+				console.log("WARNING no troop type is defined for village: "+ villageName + " continue with next village");
+				continue;
+			}
+			
+        }	
+	}
+	bLocked = true;
+	console.log('INFO done training')
+};
+
+function notUndefinedNotNull(variableToCheck){
+	return (typeof(variableToCheck) != 'undefined' && variableToCheck != null);
+}
+
 function putCustomSendResourceFromVillageLink(){
 	var baseWrap = $xf('.//div[contains(@class,"contractWrapper")]','l',cont);
 	for( var j = 0; j < baseWrap.snapshotLength; j++ ) {
@@ -4343,11 +4446,6 @@ function putCustomSendResourceFromVillageLink(){
 					var option = $opt(villageName,villageZID);
 					el.appendChild(option);
 				}
-				el.addEventListener('change', function() {
-					var selectedVillageName = el.options[el.selectedIndex].text;
-					var selectedVillageZID = el.options[el.selectedIndex].value;
-				}
-					);
 				if( wfl || baseCosts.snapshotItem(i).parentNode.getAttribute("class") != "details" ){
 					var childOfThisElement = $gc('showCosts',baseWrap.snapshotItem(j))[0];
 					var sendFromLink = $a('Küldés ebből a faluból',[['href',jsVoid],['dir','ltr']]);
