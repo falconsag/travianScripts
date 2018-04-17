@@ -42,6 +42,7 @@
 	// You probably do not want to tamper with this setting. As many things in TTQ-T4 are assuming its set to 10 seconds.
 	var CHECK_TASKS_EVERY = 30;
 
+	var merchantTimes = [16, 12, 24, 0, 0, 16, 20];
     var iresNow = [];
     var income = [];
     var incomepersecond = [];
@@ -1661,12 +1662,69 @@ function createScheduleTroopsLink(){
     beszurniSnapshot.appendChild(document.createElement("br"));
     beszurniSnapshot.appendChild(oLink);
     oLink.addEventListener('click', function(){
-		var data = getVariable("TTQ_TASKS");
-		var aTasks = data.split("|");
-		var lastTask = aTasks[aTasks.length-1];
-		var lastTaskTime = lastTask.split(",")[1];
+		blocked = true;
+		if (confirm('Really send resources?')) {
 
-		var timeDiff = new Date()/1000 - lastTaskTime;
+		var villagesToSendFrom = [
+			'70481',
+			'71013',
+			'71556',
+			'72001',
+			'72528',
+			'72963',
+			'73400',
+			'73866',
+			'74306',
+			'74683'];
+
+		var marketIDs = [
+			'35',
+			'35',
+			'35',
+			'36',
+			'35',
+			'35',
+			'33',
+			'36',
+			'35',
+			'35'
+		];
+
+		var wantedRes = '0_0_0_0'
+		for(var i = 0; i < villagesToSendFrom.length ; ++i ) {
+			var task = [];
+			task.push('7')
+			task.push('1523739359')
+			task.push(''+coordsXYToZ('-116','37'))
+			task.push('-116_37_'+wantedRes+'_'+marketIDs[i]+'_116_525_4950_35902')
+			task.push(villagesToSendFrom[i])
+			console.log('the task is: ' + task);
+
+			var result = merchant(task)
+			console.log('remaining after sending from ' + villagesToSendFrom[i] + ' is : ' + result);
+			var continueE = false;
+			if(result != null && Array.isArray(result)){
+				for(var g = 0; g < result.length ; ++g ) {
+					if(result[g] != 0){
+						continueE = true;
+						wantedRes = result[0]+'_'+result[1]+'_'+result[2]+'_'+result[3];
+					}
+				}
+			}
+			if(!continueE){
+				break;
+			}
+			wait(1500);
+		}
+		//checkSetTasks();
+		} else {
+			// Do nothing!
+		}
+
+
+
+		blocked = false;
+		
 	}, false);
 }
 
@@ -1729,6 +1787,10 @@ function getVillageNamesAndZIDs(){
 	map['08'].marketID = 35;
 	map['09'].marketID = 33;
 	map['10'].marketID = 36;
+	map['11'].marketID = 35;
+	map['12'].marketID = 35;
+	map['13'].marketID = 35;
+	map['14'].marketID = 38;
 	return map;
 }
 
@@ -1775,6 +1837,8 @@ function reFillStorageHandler(){
         var _1day = 1000 *60 *60 *24;
         var oDate =Math.floor((new Date().getTime()- _1day)/1000 );
 		setTask(taskID,oDate,coordToZ,options, undefined, sourceVillageID);
+
+
 		checkSetTasks();
     }else{
         console.log("ERROR could not determine target village coord");
@@ -3120,6 +3184,22 @@ function scheduleMerchant(e) {
 	_log(2,"scheduleMarket> End.");
 }
 
+
+function calcDistance ( id1, id2 ) {
+	var myXY = coordZToXY( id1 );
+	var dXY = coordZToXY( id2 );
+	dX = Math.min(Math.abs(dXY[0] - myXY[0]), Math.abs(MapSize - Math.abs(dXY[0] - myXY[0])));
+	dY = Math.min(Math.abs(dXY[1] - myXY[1]), Math.abs(MapSize - Math.abs(dXY[1] - myXY[1])));
+	return Math.sqrt(Math.pow(dX, 2) + Math.pow(dY, 2));
+}
+
+function getTTime(dist, speed) {
+	//*3 speed miatt
+	return Math.round(dist/(speed*3)*3600);
+}
+
+
+
 function merchant(aTask) {
 	_log(1,"SendMerchant> Begin. aTask = " + aTask);
 	printMsg(aLangStrings[6] + " > 1<br><br>" + getTaskDetails(aTask));
@@ -3127,14 +3207,16 @@ function merchant(aTask) {
 	var nid = parseInt(aTask[4]);
 	var target = parseInt(aTask[2]);
 	var sUrl = "build.php?"+(isNaN(nid)?"":("newdid="+nid+"&")) + "t=5&gid=17" + ( (isNaN(target) || target < 1 || target > 641601) ? "" : "&z="+target );
-	get(fullName+sUrl, handleMerchantRequest1, aTask, false);
+	var merchantResult = get(fullName+sUrl, handleMerchantRequest1, aTask, false);
 	_log(2,"SendMerchant> End.");
+	return merchantResult;
 }
 
 function handleMerchantRequest1(httpRequest, aTask) {
 	_log(3,"handleMerchantRequest1> Begin.");
 	if (httpRequest.readyState == 4) {
 		printMsg(aLangStrings[6] + " > 1 > 2<br><br>" + getTaskDetails(aTask));
+		var options = aTask[3].split("_")
 		var oldCoords = aTask[3].split("_");
 		oldCoords = "(" + oldCoords[0] + "|" + oldCoords[1] + ")";
 		var oldName = getVillageNameZ(parseInt(aTask[2]));
@@ -3168,13 +3250,51 @@ function handleMerchantRequest1(httpRequest, aTask) {
 						tY = parseInt(tX[0]);
 						if( !isNaN(tY) ) resNow[i] = tY;
 					}
-				}
+				}	
 				_log(3,"Resources available:"+resNow.join(','));
 				var sParams = 'cmd=prepareMarketplace&';
 				var opts = aTask[3].split("_");
 				var subSolution = false;
+
+
+				//if smart send
+
+				var smartSend = false;
+				if(typeof(opts[7]) != 'undefined'){
+					smartSend = true;
+				}
+
+				if (smartSend){
+					var sourceIncome = [parseInt(opts[7]),parseInt(opts[8]),parseInt(opts[9]),parseInt(opts[10])];
+					//workaround for negative crop production
+					if(opts[5]==0) sourceIncome[3]=0;
+
+					var originalToSend = [ parseInt(opts[2]) ,parseInt(opts[3]), parseInt(opts[4]), parseInt(opts[5])];
+					var updatedSend = [ parseInt(opts[2]) ,parseInt(opts[3]), parseInt(opts[4]), parseInt(opts[5])];
+					var map = getVillageNamesAndZIDs();
+					var sourceVid;
+					var targetVid = parseInt(aTask[2]);
+					Object.keys(map).forEach(function(key) {
+						value = map[key];
+						if(value.id == oldVID){
+							sourceVid = value.vid;
+						}
+					});
+					//kiszámoljuk mennyit kell küldeni úgy, hogy mire odaér addigra a falu termelése a maradékot kitermelje
+					var secsToArriveInVillage = getTTime( calcDistance(sourceVid, targetVid), merchantTimes[iMyRace]);
+					for( var i = 0; i < 4; i++ ) {
+						updatedSend[i] = Math.ceil(parseInt(originalToSend[i]) - sourceIncome[i]/3600 * secsToArriveInVillage);
+						if (updatedSend[i] < 0 ) updatedSend[i] =0;
+					}
+
+					//if smart send
+					opts[2]  = ''+updatedSend[0];
+					opts[3] = ''+updatedSend[1];
+					opts[4] = ''+updatedSend[2];
+					opts[5] = ''+updatedSend[3];
+				}
+
 				if(opts[2] || opts[3] || opts[4] || opts[5]){
-					
 					//if there's any resource to send
 					if( maxC != 0){
 						//if at least there is capacity in the village
@@ -3200,7 +3320,8 @@ function handleMerchantRequest1(httpRequest, aTask) {
 											tY = parseInt(opts[2]);
 											if( tY > resNow[0] ) tY = resNow[0];
 											if( tY + tX > maxC ) tY = maxC - tX;
-											tX += tY; opts[2] = tY;
+											tX += tY; 
+											opts[2] = tY;
 											sParams += "r1=" + tY + "&";
 										} else sParams += "r1=0&";
 										break;
@@ -3233,13 +3354,28 @@ function handleMerchantRequest1(httpRequest, aTask) {
 										break;
 					}
 				}
+
 				sParams = sParams.substring(0, sParams.length - 1);
 				aTask[3] = opts.join("_");
 				aTask[5] = reqVID;
 				_log(3,"sParams:"+sParams);
 				sParams += '&ajaxToken='+getAjaxToken();
-				post(fullName+"ajax.php", sParams, handleMerchantRequest2, aTask,false,subSolution);
-				return;
+				var merchantResult = post(fullName+"ajax.php", sParams, handleMerchantRequest2, aTask,false,subSolution);
+				if(smartSend){
+					var stillNeeded = originalToSend.slice();
+					if (merchantResult == 'success'){
+						var reallySending = [ parseInt(opts[2]) ,parseInt(opts[3]), parseInt(opts[4]), parseInt(opts[5])];
+						var willBeWhenArriving = [0,0,0,0]
+						for( var i = 0; i < 4; i++ ) {
+							willBeWhenArriving[i] = reallySending[i] + sourceIncome[i]/3600 * secsToArriveInVillage;
+							stillNeeded[i] = originalToSend[i] - willBeWhenArriving[i];
+							if(stillNeeded[i]<0) stillNeeded[i]=0;
+						}
+					}
+					return stillNeeded;
+				}else{
+					return;
+				}
 			}
 			if ( reqVID != currentActiveVillage ) switchActiveVillage(currentActiveVillage);
 			printMsg(getVillageName(oldVID)+ "<br>" + aLangTasks[7] + " >> " + oldName + " " + oldCoords + "<br>" + getMerchantInfo(aTask[3]) + "<br>"+ aLangStrings[73] + " (" + aLangStrings[74]+" "+aLangStrings[11]+ " 1)",true); //Your merchants didnt send. (Server: Redirected)
@@ -3309,8 +3445,7 @@ function handleMerchantRequest2(httpRequest, aTask, subSolution) {
 				sParams += "r1=" + opts[2] + "&r2=" + opts[3] + "&r3=" + opts[4] + "&r4=" + opts[5];
 				_log(3,"sParams:"+sParams);
 				sParams += '&ajaxToken='+getAjaxToken();
-				post(fullName+"ajax.php", sParams, handleMerchantRequestConfirmation, options,false,subSolution);
-				return;
+				return post(fullName+"ajax.php", sParams, handleMerchantRequestConfirmation, options,false,subSolution);
 			}
 			if ( reqVID != currentActiveVillage ) switchActiveVillage(currentActiveVillage);
 			printMsg(getVillageName(oldVID)+ "<br>" + aLangTasks[7] + " >> " + options[2] + " " + oldCoords + "<br>" + getMerchantInfo(aTask[3]) + "<br>"+ aLangStrings[73] + " (" + aLangStrings[74]+" "+aLangStrings[11] + " 2)",true); //Your merchants didnt send. (Server: Redirected)
@@ -3364,8 +3499,10 @@ function handleMerchantRequestConfirmation(httpRequest, options, subSolution) {
 					_log(1,"Your merchants were sent. From: " + getVillageName(oldVID) + "   To: " +oldName + " " + oldCoords + " carrying " + getMerchantInfo(aTask[3]) );
 					if(typeof(subSolution) != 'undefined' && subSolution == true){
 						addToHistory(aTask, true,undefined,true);
+						return 'success';
 					}else{
 						addToHistory(aTask, true);
+						return 'success';
 					}
 					
 				} else {
@@ -4384,6 +4521,81 @@ function wait(ms){
 	  end = new Date().getTime();
    }
  }
+
+/**
+ * Input: 
+ * array of selected village names: e.g: ['02','03'...]
+ * string of '_' concatenated missing resources: e.g: '4000_1200_10_20'
+ * string of '_' concatenated income/h of the village to send to: e.g: '5250_5250_5250_6000'
+ */
+unsafeWindow.sendResourcesForTroopsFromSelectedVillages = function(selectedVillages,missingResources,incomeString){
+	bLocked = true;
+	if(missingResources == '0_0_0_0'){
+		console.log('INFO exiting, nothing to send')
+		return;
+	}
+
+	var villages = getVillageNamesAndZIDs();
+	var villageIdsToSendFrom = [];
+	var marketIDs = [];
+	for(var i = 0; i < selectedVillages.length ; ++i ) {
+		var villageName = selectedVillages[i];
+		var villageStruct = villages[villageName];
+		if(notUndefinedNotNull(villageStruct.marketID) && notUndefinedNotNull(villageStruct.id)){
+			marketIDs.push(''+villageStruct.marketID);
+			villageIdsToSendFrom.push(''+villageStruct.id);
+		}else{
+			console.log("WARNING marketID or Zid is not defined for village: "+ villageName + " continue with next village");
+		}
+	}
+
+	var currentVillageZID;
+	Object.keys(villages).forEach(function(key) {
+		villageStruct = villages[key];
+		if(villageStruct.id == currentActiveVillage){
+			currentVillageZID = villageStruct.vid
+		}
+	});
+	console.log(currentVillageZID);
+
+	if(!notUndefinedNotNull(currentVillageZID)){
+		console.log('ERROR could not determine current village coords, exiting')
+		return;
+	}
+
+	for(var i = 0; i < villageIdsToSendFrom.length ; ++i ) {
+		var task = [];
+		task.push('7')
+		task.push(''+new Date().getTime())
+		task.push(''+currentVillageZID)
+		//first two is for logging purposes the sending coordinate
+		task.push('0_0_'+missingResources+'_'+marketIDs[i]+'_'+incomeString)
+		task.push(villageIdsToSendFrom[i])
+		//console.log('the task is: ' + task);
+		var result = merchant(task)
+		console.log('remaining amount to send after sending from ' + villageIdsToSendFrom[i] + ' is : ' + result);
+		var continueE = false;
+		if(result != null && Array.isArray(result)){
+			for(var g = 0; g < result.length ; ++g ) {
+				if(result[g] != 0){
+					continueE = true;
+					missingResources = result[0]+'_'+result[1]+'_'+result[2]+'_'+result[3];
+				}
+			}
+		}
+		if(!continueE){
+			break;
+		}
+		wait(1500);
+	}
+
+	if(result.join('_') =='0_0_0_0'){
+		console.log('COMPLETED sending resources')
+	}else{
+		console.log(result + 'REMAINING')
+	}
+}
+
 
 
 unsafeWindow.scheduleTroopsInSelectedVillages = function(selectedVillages) {
