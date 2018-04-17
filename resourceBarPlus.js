@@ -4760,14 +4760,8 @@
          row.appendChild($c(sumCurrentRes,sumAttr));
          tblBody.appendChild(row);
 
-        var listOfVillageNames = getVillageNamesAndZIDs();
-        var el = $sel('akarmi', 4);
-
-        for(var i = 0; i < listOfVillageNames.length; i++) {
-            var villageName = listOfVillageNames[i];
-            var option = $opt(villageName,villageName);
-            el.appendChild(option);
-        }
+        var el = getMultiSelectWithVillages();
+        
 
         var scheduleTroopsRow = $ee('TR',el);
         var scheduleTroopsButton = $a('Schedule troops',[['href',jsVoid],['dir','ltr']]);
@@ -4815,6 +4809,20 @@
         progressbar_updValues();
         progressbar_time = (Date.now()) - progressbar_time;
     }
+
+    function getMultiSelectWithVillages(){
+        var listOfVillageNames = getVillageNamesAndZIDs();
+        var el = $sel('akarmi', 4);
+
+        for(var i = 0; i < listOfVillageNames.length; i++) {
+            var villageName = listOfVillageNames[i];
+            var option = $opt(villageName,villageName);
+            el.appendChild(option);
+        }
+        return el;
+    }
+    
+
 
     function saveSpaceLeftToMem () {
         if( closeWindowN(10) ) return;
@@ -9192,7 +9200,22 @@
                            [$em('TD',['Actual képzés idő: ',trImg('clock'),' ',$eT('SPAN',allWR[0],0),' ',trImg('r5'),' ',allWR[5]]),$c(newBTX)]);
 
             var sumKepzesiIdo = $em('TR',
-                           [$em('TD',['Sum képzés idő: ',trImg('clock'),' ',$eT('SPAN',allWR[0]+nts,0),' ',trImg('r5'),' ',allWR[5]])]);
+                           [$em('TD',['Sum képzés idő: ',trImg('clock'),' ',$eT('SPAN',allWR[0]+nts,0),' ',trImg('r5'),' ',allWR[5]])]  );
+
+
+            var el = getMultiSelectWithVillages();
+
+            var sendFromVillagesButton = $a('Send',[['href',jsVoid],['dir','ltr']]);
+            sendFromVillagesButton.addEventListener('click', function() { 
+                var neededResources = [allWR[1],allWR[2],allWR[3],allWR[4]];
+                var missingResources = getMissingResourcesTo(neededResources)
+                var selectedValues = getSelectValues(el);
+                unsafeWindow.sendResourcesForTroopsFromSelectedVillages(selectedValues,missingResources.join('_'),income.join('_'));
+            }, 0);
+
+
+            var sendFromVillagesRow = $em('TR',[$c('Send resources from villages: '),$c(el), $c(sendFromVillagesButton)]);
+
 
             var newTbl = $ee('TABLE',actualKepzesiIdo,[['class',allIDs[7]],['style','background-color:#FAFAFF;']]);
             var newT = needed_show( wantD );
@@ -9201,10 +9224,31 @@
             newTbl.appendChild(sumKepzesiIdo);
             newTbl.appendChild(newR);
             newTbl.appendChild(sumResNeeded)
+            newTbl.appendChild(sendFromVillagesRow)
             closeWindowN(9);
             var xy = offsetPosition(this);
-            windowID[9] = makeFloat(newTbl,xy[0]-(ltr?100:300),xy[1]-90);
+            windowID[9] = makeFloat(newTbl,xy[0]-(ltr?100:300),xy[1]-160);
         }
+
+        function getMissingResourcesTo(wantedResources){
+            if(Array.isArray(wantedResources)){
+                var missingResources= [0,0,0,0];
+                for (var e = 0; e < 4; e++) {
+                    var missingRes = resNow[e] - wantedResources[e];
+                    if (missingRes >= 0) {
+                        missingResources[e]=0;
+                    } else {
+                        missingResources[e]=Math.abs(missingRes);
+                    }
+                }
+                return missingResources;
+            }else{
+                return [0,0,0,0];
+            }
+        }
+
+
+
         function closeTip () {
             closeWindowN(9);
         }
