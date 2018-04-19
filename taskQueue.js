@@ -34,6 +34,7 @@
 
 (function () {
 
+	var AUTOMATIC_BUILD_SCHEDULE = 0;
 	var RAISE_ALERT_ON_MERCHANT_ERROR = 0;
 	var ADD_FAILED_BUILD_TO_HISTORY = 0;
 	var LOG_LEVEL = 0; // 0 - quiet, 1 - nearly quite, 2 - verbose, 3 - detailed
@@ -1627,11 +1628,16 @@ function createBuildLinks() {
 		oLink2.innerHTML = "&ndash; " + "MOST" + " &ndash;";
 		oLink2.title = aLangStrings[4];
 		var bOptions = bID + "_" + bName + (eParam.length > 1 ? "_" + eParam: "");
-		ttqAddEventListener(oLink, 'click', function() {
+		var clikMOSTFunction = function() {
 			setTask(iTask, Math.floor(new Date()/1000), iSiteId, bOptions);	
-		}, false);
+		};
+		ttqAddEventListener(oLink, 'click', clikMOSTFunction, false);
 		bBuildDesc.appendChild(oLink);
+
 		oLink.appendChild(oLink2);
+		if(AUTOMATIC_BUILD_SCHEDULE){
+			clikMOSTFunction();
+		}
     }
 	_log(3, "End createBuildLinks()");
 }
@@ -1675,7 +1681,9 @@ function createScheduleTroopsLink(){
 			'73400',
 			'73866',
 			'74306',
-			'74683'];
+			'74683',
+			'75019',
+		];
 
 		var marketIDs = [
 			'35',
@@ -1687,10 +1695,11 @@ function createScheduleTroopsLink(){
 			'33',
 			'36',
 			'35',
+			'35',
 			'35'
 		];
 
-		var wantedRes = '0_0_0_0'
+		var wantedRes = '440000_280000_240000_0'
 		for(var i = 0; i < villagesToSendFrom.length ; ++i ) {
 			var task = [];
 			task.push('7')
@@ -4490,6 +4499,10 @@ function onLoad() {
 	isTTQLoaded = true;
 	ttqUpdatePanel(vName,Math.floor(tX/1000));
 	_log(1, "End onLoad()");
+
+	if(AUTOMATIC_BUILD_SCHEDULE){
+		window.close();
+	}
 }
 
 function getSelectValues(select) {
@@ -4586,7 +4599,7 @@ unsafeWindow.sendResourcesForTroopsFromSelectedVillages = function(selectedVilla
 		if(!continueE){
 			break;
 		}
-		wait(1500);
+		wait(800);
 	}
 
 	if(result.join('_') =='0_0_0_0'){
@@ -4615,9 +4628,9 @@ unsafeWindow.scheduleTroopsInSelectedVillages = function(selectedVillages) {
 				taskTrain.push(''+oDate);
 				taskTrain.push(''+villageStruct.barrackID);
 				if(villageStruct.troopType =='l'){
-					taskTrain.push(getLegioOptions(300));
+					taskTrain.push(getLegioOptions(50));
 				}else if (villageStruct.troopType =='t'){
-					taskTrain.push(getTestorOptions(300));
+					taskTrain.push(getTestorOptions(50));
 				}else{
 					console.log("WARNING troop type is unknown for village: "+ villageName + " continue with next village");
 					continue;
@@ -4663,29 +4676,12 @@ function putCustomSendResourceFromVillageLink(){
 					var sendFromLink = $a('Küldés ebből a faluból',[['href',jsVoid],['dir','ltr']]);
 					childOfThisElement.appendChild( el );
 					childOfThisElement.appendChild( sendFromLink);
-
-					/*
-					if (typeof targetVillageCoord !== 'undefined'){
-						console.log("INFO target village coord is: " +targetVillageCoord);
-						var taskID= 7;//merchant taskID
-						var target = 0;//ez maradjon 0..
-						var options = targetVillageCoord[0] + "_" + targetVillageCoord[1] + "_" + RB[0] + "_" + RB[1] + "_" + RB[2] + "_" + RB[3] + "_" + marketPlaceID;
-
-						var coordToZ = coordsXYToZ(targetVillageCoord[0],targetVillageCoord[1]);
-						var _1day = 1000 *60 *60 *24;
-						var oDate =Math.floor((new Date().getTime()- _1day)/1000 );
-						setTask(taskID,oDate,coordToZ,options, undefined, sourceVillageID);
-					}else{
-						console.log("ERROR could not determine target village coord");
-					}
-					*/
-
-
-
-
-
-
-
+					sendFromLink.addEventListener('click',function(){
+						getResources();
+						var selectedValues = getSelectValues(el);
+						var missingResources = [newD[0],newD[1],newD[2],newD[3]];
+						unsafeWindow.sendResourcesForTroopsFromSelectedVillages(selectedValues,missingResources.join('_'),income.join('_'));
+					}, 0);
 				}
 			}
 			//addNPC(baseCosts.snapshotItem(i));
