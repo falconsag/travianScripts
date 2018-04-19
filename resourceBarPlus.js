@@ -4858,6 +4858,26 @@
             ressA[i] = $c(RB.wantsMem[i]);
             newT.appendChild($em('TR',[$c(trImg('r' + (i+1))),ressA[i]]));
         }
+
+        //send button
+        var sendFromVillagesBtn = $a('Send',[['href',jsVoid],['dir','ltr']]);
+        //send without crop button
+        var sendFromVillagesBtn2 = $a('Send no Crop',[['href',jsVoid],['dir','ltr']]);
+        var sek = getMultiSelectWithVillages();
+        sendFromVillagesBtn.addEventListener('click',function(){
+            getResources();
+            var selectedValues = getSelectValues(sek);
+            var missingResources = [RB.wantsMem[0],RB.wantsMem[1],RB.wantsMem[2],RB.wantsMem[3]];
+            unsafeWindow.sendResourcesForTroopsFromSelectedVillages(selectedValues,missingResources.join('_'),income.join('_'));
+        }, 0);
+        sendFromVillagesBtn2.addEventListener('click',function(){
+            getResources();
+            var selectedValues = getSelectValues(sek);
+            var missingResources = [RB.wantsMem[0],RB.wantsMem[1],RB.wantsMem[2],0];
+            unsafeWindow.sendResourcesForTroopsFromSelectedVillages(selectedValues,missingResources.join('_'),income.join('_'));
+        }, 0);
+        newT.appendChild($em('TR',[sek,$c(sendFromVillagesBtn),$c(sendFromVillagesBtn2)]));
+      
         resRecalc();
         var xy = offsetPosition(this.parentNode);
         windowID[10] = makeFloat(newT,xy[0]+120,xy[1]+25);
