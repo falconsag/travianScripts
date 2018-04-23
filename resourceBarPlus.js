@@ -4628,10 +4628,10 @@
         var result = [];
         var options = select && select.options;
         var opt;
-      
+
         for (var i=0, iLen=options.length; i<iLen; i++) {
           opt = options[i];
-      
+
           if (opt.selected) {
             result.push(opt.text);
           }
@@ -4646,7 +4646,7 @@
             var villages = $gt('li',vlist);
             for ( var vn = 0; vn < villages.length; vn++ ) {
                 var linkEl = $gt("a",villages[vn])[0];
-    
+
                 var villageName = $gc("name",linkEl)[0].textContent;
                 list.push(villageName);
             }
@@ -4761,12 +4761,12 @@
          tblBody.appendChild(row);
 
         var el = getMultiSelectWithVillages();
-        
+
 
         var scheduleTroopsRow = $ee('TR',el);
         var scheduleTroopsButton = $a('Schedule troops',[['href',jsVoid],['dir','ltr']]);
         scheduleTroopsRow.appendChild($c(scheduleTroopsButton));
-        scheduleTroopsButton.addEventListener('click', function() { 
+        scheduleTroopsButton.addEventListener('click', function() {
             var selectedValues = getSelectValues(el);
             unsafeWindow.scheduleTroopsInSelectedVillages(selectedValues);
         }, 0);
@@ -4821,7 +4821,7 @@
         }
         return el;
     }
-    
+
 
 
     function saveSpaceLeftToMem () {
@@ -4863,6 +4863,8 @@
         var sendFromVillagesBtn = $a('Send',[['href',jsVoid],['dir','ltr']]);
         //send without crop button
         var sendFromVillagesBtn2 = $a('Send no Crop',[['href',jsVoid],['dir','ltr']]);
+        var scheduleSend = $a('Schedule refill',[['href',jsVoid],['dir','ltr']]);
+        var scheduleSendNoCrop = $a('Schedule no crop',[['href',jsVoid],['dir','ltr']]);
         var sek = getMultiSelectWithVillages();
         sendFromVillagesBtn.addEventListener('click',function(){
             getResources();
@@ -4876,8 +4878,18 @@
             var missingResources = [RB.wantsMem[0],RB.wantsMem[1],RB.wantsMem[2],0];
             unsafeWindow.sendResourcesForTroopsFromSelectedVillages(selectedValues,missingResources.join('_'),income.join('_'));
         }, 0);
-        newT.appendChild($em('TR',[sek,$c(sendFromVillagesBtn),$c(sendFromVillagesBtn2)]));
-      
+        scheduleSend.addEventListener('click',function(){
+            getResources();
+            var selectedValues = getSelectValues(sek);
+            unsafeWindow.scheduleVillageRefill(selectedValues,nK);
+        }, 0);
+        scheduleSendNoCrop.addEventListener('click',function(){
+            getResources();
+            var selectedValues = getSelectValues(sek);
+            unsafeWindow.scheduleVillageRefill(selectedValues,nK,true);
+        }, 0);
+        newT.appendChild($em('TR',[sek,$c(sendFromVillagesBtn),$c(sendFromVillagesBtn2),$c(scheduleSend),$c(scheduleSendNoCrop)]));
+
         resRecalc();
         var xy = offsetPosition(this.parentNode);
         windowID[10] = makeFloat(newT,xy[0]+120,xy[1]+25);
@@ -9215,7 +9227,7 @@
             newBTX.addEventListener('click', closeTip, true);
 
             var nts = tshift>0 ? tshift + (RunTime[0] - (Date.now())) / 1e3: 0;
-            
+
             var actualKepzesiIdo = $em('TR',
                            [$em('TD',['Actual képzés idő: ',trImg('clock'),' ',$eT('SPAN',allWR[0],0),' ',trImg('r5'),' ',allWR[5]]),$c(newBTX)]);
 
@@ -9226,7 +9238,7 @@
             var el = getMultiSelectWithVillages();
 
             var sendFromVillagesButton = $a('Send',[['href',jsVoid],['dir','ltr']]);
-            sendFromVillagesButton.addEventListener('click', function() { 
+            sendFromVillagesButton.addEventListener('click', function() {
                 var neededResources = [allWR[1],allWR[2],allWR[3],allWR[4]];
                 var missingResources = getMissingResourcesTo(neededResources)
                 var selectedValues = getSelectValues(el);

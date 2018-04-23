@@ -34,6 +34,11 @@
 
 (function () {
 
+	var USE_SMART_RESOURCE_SCALING = 0; //leskálázzuk egyenletesen a nyersi küldést annyira amennyit tud a falu maxon
+										//pl 200k, 200k, 200k, 200k és a falu tud össz 100k-t akkor 25k megy mindenből
+										//viszont ez nem lesz teljesen jó mert ha nagyon sokat kell szállítani, nagyon le lesz skálázva
+										//holott tudna többet is vinni pl:
+										// 500k, 500k, 100k, 100k faluban van 80k, 10k, 10k, 10k ilyen alig 30-40k fog menni fából
 	var AUTOMATIC_BUILD_SCHEDULE = 0;
 	var RAISE_ALERT_ON_MERCHANT_ERROR = 0;
 	var ADD_FAILED_BUILD_TO_HISTORY = 0;
@@ -964,7 +969,7 @@ function checkSetTasks() {
 //-- }
 	//CUSTOM
 	var activeVillageBeforeTrigger = currentActiveVillage;
-	if ( aTasks != "" ) { 
+	if ( aTasks != "" ) {
 		aTasks = aTasks.split("|");
 		var skipVillagesFieldUpgradeSet = new Set();
 		var skipVillagesDemolishSet = new Set();
@@ -1373,12 +1378,19 @@ function triggerTask(aTask) {
 		case "9": //send troops through Gold-Club
 			sendGoldClub(aTask);
 			break;
+		case "10": //schedule refill of the village
+			refillVillage(aTask);
+			break;
 		default: //do nothing
 			_log(1, "Can't trigger an unknown task.");
 			break;
 	}
     _log(3, "End triggerTask("+aTask+")");
     return result;
+}
+
+function refillVillage(aTask){
+
 }
 // *** End TTQ Core Functions ***
 
@@ -1562,7 +1574,7 @@ function makeHistoryRow(aTask, index/*, iServerTimeOffset*/) {
 				sBgColor = "#FFB89F";
 			}else{
 				sBgColor = "#90FF8F";
-			}	
+			}
 		}
 
 		oHistoryRow.style.backgroundColor = sBgColor;
@@ -1629,7 +1641,7 @@ function createBuildLinks() {
 		oLink2.title = aLangStrings[4];
 		var bOptions = bID + "_" + bName + (eParam.length > 1 ? "_" + eParam: "");
 		var clikMOSTFunction = function() {
-			setTask(iTask, Math.floor(new Date()/1000), iSiteId, bOptions);	
+			setTask(iTask, Math.floor(new Date()/1000), iSiteId, bOptions);
 		};
 		ttqAddEventListener(oLink, 'click', clikMOSTFunction, false);
 		bBuildDesc.appendChild(oLink);
@@ -1733,7 +1745,7 @@ function createScheduleTroopsLink(){
 
 
 		blocked = false;
-		
+
 	}, false);
 }
 
@@ -1762,44 +1774,52 @@ function getVillageNamesAndZIDs(){
 	}
 	//CUSTOMIZE FONTOS töltsd ki a market id-ket, hogy melyik faluba hol van,TODO
 	//defining barrack ids
-	map['01'].barrackID = 29;
-	map['02'].barrackID = 29;
-	map['03'].barrackID = 29;
-	map['04'].barrackID = 29;
-	map['05'].barrackID = 29;
-	map['06'].barrackID = 29;
-	map['07'].barrackID = 33;
-	map['08'].barrackID = 27;
-	map['09'].barrackID = 36;
-	map['10'].barrackID = 29;
-	map['11'].barrackID = 29;
+	try{
+		if(myPlayerID == "1199"){
+			map['01'].barrackID = 29;
+			map['02'].barrackID = 29;
+			map['03'].barrackID = 29;
+			map['04'].barrackID = 29;
+			map['05'].barrackID = 29;
+			map['06'].barrackID = 29;
+			map['07'].barrackID = 33;
+			map['08'].barrackID = 27;
+			map['09'].barrackID = 36;
+			map['10'].barrackID = 29;
+			map['11'].barrackID = 29;
 
-	//defining troops to build types
-	map['02'].troopType = 't';
-	map['03'].troopType = 't';
-	map['04'].troopType = 'l';
-	map['05'].troopType = 't';
-	map['06'].troopType = 'l';
-	map['07'].troopType = 'l';
-	map['08'].troopType = 't';
-	map['09'].troopType = 't';
+			//defining troops to build types
+			map['02'].troopType = 't';
+			map['03'].troopType = 't';
+			map['04'].troopType = 't';
+			map['05'].troopType = 't';
+			map['06'].troopType = 't';
+			map['07'].troopType = 't';
+			map['08'].troopType = 't';
+			map['09'].troopType = 't';
 
 
-	//defining market ids
-	map['01'].marketID = 35;
-	map['02'].marketID = 35;
-	map['03'].marketID = 35;
-	map['04'].marketID = 35;
-	map['05'].marketID = 35;
-	map['06'].marketID = 35;
-	map['07'].marketID = 35;
-	map['08'].marketID = 35;
-	map['09'].marketID = 33;
-	map['10'].marketID = 36;
-	map['11'].marketID = 35;
-	map['12'].marketID = 35;
-	map['13'].marketID = 35;
-	map['14'].marketID = 38;
+			//defining market ids
+			map['01'].marketID = 35;
+			map['02'].marketID = 35;
+			map['03'].marketID = 35;
+			map['04'].marketID = 35;
+			map['05'].marketID = 35;
+			map['06'].marketID = 35;
+			map['07'].marketID = 35;
+			map['08'].marketID = 35;
+			map['09'].marketID = 33;
+			map['10'].marketID = 36;
+			map['11'].marketID = 35;
+			map['12'].marketID = 35;
+			map['13'].marketID = 35;
+			map['14'].marketID = 38;
+			map['15'].marketID = 35;
+		}
+	}catch (err){
+		console.log("ERROR: "+ err +"  "+ err.message)
+	}
+
 	return map;
 }
 
@@ -2849,7 +2869,7 @@ function scheduleTraining(e) {
 
 	//get the code
 	var iCode = xpath("//form//input[@name='z']");
-	
+
 	if(iCode.snapshotLength > 0) aTroops[0] = iCode.snapshotItem(0).value;
 	else {
 		_log(3, "ScheduleTraining> No code available. Exiting.");
@@ -3106,7 +3126,7 @@ function demolish(aTask) {
 	httpRequest.send(null);
 	_log(3,"End demolish("+aTask+")");
 	return result;
-	
+
 }
 
 function handleRequestDemolish(httpRequest, aTask) {
@@ -3259,7 +3279,7 @@ function handleMerchantRequest1(httpRequest, aTask) {
 						tY = parseInt(tX[0]);
 						if( !isNaN(tY) ) resNow[i] = tY;
 					}
-				}	
+				}
 				_log(3,"Resources available:"+resNow.join(','));
 				var sParams = 'cmd=prepareMarketplace&';
 				var opts = aTask[3].split("_");
@@ -3303,7 +3323,7 @@ function handleMerchantRequest1(httpRequest, aTask) {
 					opts[5] = ''+updatedSend[3];
 				}
 
-				if(opts[2] || opts[3] || opts[4] || opts[5]){
+				if(USE_SMART_RESOURCE_SCALING && (opts[2] || opts[3] || opts[4] || opts[5])){
 					//if there's any resource to send
 					if( maxC != 0){
 						//if at least there is capacity in the village
@@ -3327,34 +3347,34 @@ function handleMerchantRequest1(httpRequest, aTask) {
 					switch ( tInputs[q].id ) {
 						case "r1":		if ( opts[2] ) {
 											tY = parseInt(opts[2]);
-											if( tY > resNow[0] ) tY = resNow[0];
-											if( tY + tX > maxC ) tY = maxC - tX;
-											tX += tY; 
+											if( tY > resNow[0] ){ tY = resNow[0];subSolution = true;}
+											if( tY + tX > maxC ) {tY = maxC - tX;subSolution = true;}
+											tX += tY;
 											opts[2] = tY;
 											sParams += "r1=" + tY + "&";
 										} else sParams += "r1=0&";
 										break;
 						case "r2":		if ( opts[3] ) {
 											tY = parseInt(opts[3]);
-											if( tY > resNow[1] ) tY = resNow[1];
-											if( tY + tX > maxC ) tY = maxC - tX;
+											if( tY > resNow[1] ) {tY = resNow[1]; subSolution = true;}
+											if( tY + tX > maxC ) {tY = maxC - tX; subSolution = true;}
 											tX += tY; opts[3] = tY;
 											sParams += "r2=" + tY + "&";
 										} else sParams += "r2=0&";
 										break;
 						case "r3":		if ( opts[4] ) {
 											tY = parseInt(opts[4]);
-											if( tY > resNow[2] ) tY = resNow[2];
-											if( tY + tX > maxC ) tY = maxC - tX;
+											if( tY > resNow[2] ) {tY = resNow[2]; subSolution = true;}
+											if( tY + tX > maxC ) {tY = maxC - tX; subSolution = true;}
 											tX += tY; opts[4] = tY;
 											sParams += "r3=" + tY + "&";
 										} else sParams += "r3=0&";
 										break;
 						case "r4":		if ( opts[5] ) {
 											tY = parseInt(opts[5]);
-											if( tY > resNow[3] ) tY = resNow[3] - 10;
+											if( tY > resNow[3] ) {tY = resNow[3] - 10;subSolution = true;}
 											if( tY < 0 ) tY = 0;
-											if( tY + tX > maxC ) tY = maxC - tX;
+											if( tY + tX > maxC ) {tY = maxC - tX;subSolution = true;}
 											tX += tY; opts[5] = tY;
 											sParams += "r4=" + tY + "&";
 										} else sParams += "r4=0&";
@@ -3513,7 +3533,7 @@ function handleMerchantRequestConfirmation(httpRequest, options, subSolution) {
 						addToHistory(aTask, true);
 						return 'success';
 					}
-					
+
 				} else {
 					printMsg(getVillageName(oldVID)+ "<br>" + aLangTasks[7] + " >> " + oldName + " " + oldCoords + "<br>" + getMerchantInfo(aTask[3]) + "<br>"+aLangStrings[50]+" ("+aLangStrings[75]+")",true); //Your merchants didnt send. Confirmation failed
 					_log(1,"Your merchants were NOT sent. Didnt see it on marketplace, could have actually been successfull if there was a long delay. Confirmation Failed.From: " + getVillageName(oldVID) + "   To: " +oldName + " " + oldCoords + " carrying " + getMerchantInfo(aTask[3]) );
@@ -3632,6 +3652,16 @@ function displayTimerForm(iTask, target, options, timestamp, taskindex, villaged
 			/* ????????? ??? ???? ????, ???, ??? ????. ??? ????? 6?,7?,8? ???????. ??????????? ???? name ??? 6??.
 			 * ????? ? ??????? ???? ???????. ??????? ???? ????????. ????? ?? ?????? ? ???????.
 			 */
+			break;
+		case 10:  //Send Merchants
+			sTask = "Schedule refill village";
+			sWhat = " >> " + getVillageNameZ(target);
+			sMoreInfo = "Refill to "+ options[2] + "%";
+			if(options[3] == true){
+				sMoreInfo += " WITHOUT crop";
+			}else{
+				sMoreInfo += " WITH crop";
+			}
 			break;
 	}
 
@@ -4509,10 +4539,10 @@ function getSelectValues(select) {
 	var result = [];
 	var options = select && select.options;
 	var opt;
-  
+
 	for (var i=0, iLen=options.length; i<iLen; i++) {
 	  opt = options[i];
-  
+
 	  if (opt.selected) {
 		result.push(opt.text);
 	  }
@@ -4535,8 +4565,29 @@ function wait(ms){
    }
  }
 
+
+
+ unsafeWindow.scheduleVillageRefill = function(selectedVillages,nK,noCrop){
+	var villages = getVillageNamesAndZIDs();
+	var currentVillageZID;
+	var currentVillageX;
+	var currentVillageY;
+	Object.keys(villages).forEach(function(key) {
+		villageStruct = villages[key];
+		if(villageStruct.id == currentActiveVillage){
+			currentVillageZID = villageStruct.vid
+		}
+	});
+
+		var tXX = coordZToXY(currentVillageZID)[0];
+		var tYY = coordZToXY(currentVillageZID)[1];
+		var tData = [tXX,tYY,nK,noCrop];
+	
+		displayTimerForm(10, currentVillageZID, tData);
+ }
+
 /**
- * Input: 
+ * Input:
  * array of selected village names: e.g: ['02','03'...]
  * string of '_' concatenated missing resources: e.g: '4000_1200_10_20'
  * string of '_' concatenated income/h of the village to send to: e.g: '5250_5250_5250_6000'
@@ -4606,6 +4657,7 @@ unsafeWindow.sendResourcesForTroopsFromSelectedVillages = function(selectedVilla
 		console.log('COMPLETED sending resources')
 	}else{
 		console.log(result + 'REMAINING')
+		addToHistory(['7',''+new Date().getTime(),'','','',''], true, 'Remaining to send: '+result,true) 
 	}
 }
 
@@ -4622,7 +4674,7 @@ unsafeWindow.scheduleTroopsInSelectedVillages = function(selectedVillages) {
 			var villageName = selectedVillages[i];
 			var villageStruct = villages[villageName];
 			var taskTrain = [];
-			
+
 			if(notUndefinedNotNull(villageStruct.troopType)){
 				taskTrain.push('4');
 				taskTrain.push(''+oDate);
@@ -4644,8 +4696,8 @@ unsafeWindow.scheduleTroopsInSelectedVillages = function(selectedVillages) {
 				console.log("WARNING no troop type is defined for village: "+ villageName + " continue with next village");
 				continue;
 			}
-			
-        }	
+
+        }
 	}
 	bLocked = true;
 	console.log('INFO done training')
