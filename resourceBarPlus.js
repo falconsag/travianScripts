@@ -3668,10 +3668,10 @@
                 var e = $gc('rbcheckbox');
                 for(var i=0; i<e.length; i++) {
                     if(e[i].checked) {
-                        setTimeout(function(k){createTrade(k);}, 1200*count++, e[i].value);
+                        setTimeout(function(k){createTrade(k);}, 600*count++, e[i].value);
                     }
                     if (i==e.length-1) {
-                        setTimeout(function(){ document.location.href = fullName +'build.php?t=0&gid=17'; }, 1200*count);
+                        setTimeout(function(){ document.location.href = fullName +'build.php?t=0&gid=17'; }, 600*count);
                     }
                 }
             }
@@ -4761,10 +4761,23 @@
          tblBody.appendChild(row);
 
         var el = getMultiSelectWithVillages();
-
-
-        var scheduleTroopsRow = $ee('TR',el);
+        var heroNextVillage = unsafeWindow.getHeroNextVillage();
+        var sendHeroToNext = $a('Hero to '+unsafeWindow.getHeroNextVillage(),[['href',jsVoid],['dir','ltr']]);
+        var sendHeroToSelected = $a('Hero to selected',[['href',jsVoid],['dir','ltr']]);
+        sendHeroToSelected.addEventListener('click', function() {
+            var selectedValues = getSelectValues(el);
+            unsafeWindow.sendHeroToSelectedVillage(selectedValues);
+        }, 0);
+        sendHeroToNext.addEventListener('click', function() {
+            unsafeWindow.sendHeroToSelectedVillage(heroNextVillage);
+        }, 0);
+        var scheduleTroopsRow = $em('TR',[el,sendHeroToSelected]);
+        if(typeof(heroNextVillage) != 'undefined' && heroNextVillage != null){
+            scheduleTroopsRow = $em('TR',[el,sendHeroToNext,sendHeroToSelected]);
+        }
+        
         var scheduleTroopsButton = $a('Schedule troops',[['href',jsVoid],['dir','ltr']]);
+
         scheduleTroopsRow.appendChild($c(scheduleTroopsButton));
         scheduleTroopsButton.addEventListener('click', function() {
             var selectedValues = getSelectValues(el);

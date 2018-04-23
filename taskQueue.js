@@ -132,6 +132,16 @@ var MIN_REFRESH_MINUTES = 8;  // TTQ will refresh every 5 to 10 minutes
 var MAX_REFRESH_MINUTES = 16;
 var MAX_PLACE_NAMES = 100; // The number of non-player village names it keeps stored. It destroys the oldest when making space.
 // RACE and HISTORY LENGTH are set with user accessible menus through the GreaseMonkey icon. As well as a way to fully reset TTQ.
+var heroPath = {};
+heroPath['02'] = '09';
+heroPath['09'] = '08';
+heroPath['08'] = '07';
+heroPath['07'] = '06';
+heroPath['06'] = '05';
+heroPath['05'] = '04';
+heroPath['04'] = '03';
+heroPath['03'] = '02';
+
 /*********************
  *	End of Settings
  *********************/
@@ -1768,6 +1778,7 @@ function getVillageNamesAndZIDs(){
 			var wrapper = {};
 			wrapper.vid = myVid;
 			wrapper.id = nd;
+			wrapper.villageName = villageName;
 			map[villageName] = wrapper;
 
         }
@@ -4565,6 +4576,67 @@ function wait(ms){
    }
  }
 
+
+/**
+ * Returns the currently selected village's struct
+ */
+function getCurrentVillageStruct(){
+	var BreakException = {};
+	var villageStruct;
+	var villages = getVillageNamesAndZIDs();
+	try{
+		Object.keys(villages).forEach(function(key) {
+			villageStruct = villages[key];
+			if(villageStruct.id == currentActiveVillage){
+				throw BreakException
+				return villageStruct;
+			}
+		});
+	}catch (e){
+		if (e === BreakException) return villageStruct;
+	}
+	return undefined;
+}
+
+function getVillageStructByVillageName(selectedVillageName){
+	var BreakException = {};
+	var villageStruct;
+	var villages = getVillageNamesAndZIDs();
+	try{
+		Object.keys(villages).forEach(function(key) {
+			villageStruct = villages[key];
+			if(villageStruct.villageName == selectedVillageName){
+				throw BreakException
+				return villageStruct;
+			}
+		});
+	}catch (e){
+		if (e === BreakException) return villageStruct;
+	}
+	return undefined;
+}
+
+
+
+ unsafeWindow.getHeroNextVillage = function(){
+	return heroPath[getCurrentVillageStruct().villageName];
+ }
+
+ unsafeWindow.sendHeroToSelectedVillage = function(selectedVillageName){
+	if(Array.isArray(selectedVillageName) && selectedVillageName.length == 1){
+		selectedVillageName = selectedVillageName[0];
+	}
+
+	var task = [];
+	task.push('2')
+	task.push(''+new Date().getTime())
+	task.push(''+getVillageStructByVillageName(selectedVillageName).vid)
+	//first two is for logging purposes the sending coordinate
+	task.push('2_0_0_0_0_0_0_0_0_0_0_1_0_-1_-1_-1_-1_1') // 2 az valami 'c', az első 1 az a hero , az utolsó pedig hogy áthelyezés, a -1ek nemtom
+	task.push(currentActiveVillage) 
+
+	attack(task);
+ }
 
 
  unsafeWindow.scheduleVillageRefill = function(selectedVillages,nK,noCrop){
