@@ -1399,9 +1399,7 @@ function triggerTask(aTask) {
     return result;
 }
 
-function refillVillage(aTask){
 
-}
 // *** End TTQ Core Functions ***
 
 // *** Begin History Functions ***
@@ -1760,7 +1758,6 @@ function createScheduleTroopsLink(){
 }
 
 
-
 //CUSTOM
 function getVillageNamesAndZIDs(){
 	var map = {};
@@ -1787,6 +1784,7 @@ function getVillageNamesAndZIDs(){
 	//defining barrack ids
 	try{
 		if(myPlayerID == "1199"){
+			//sGLuk
 			map['01'].barrackID = 29;
 			map['02'].barrackID = 29;
 			map['03'].barrackID = 29;
@@ -1826,6 +1824,12 @@ function getVillageNamesAndZIDs(){
 			map['13'].marketID = 35;
 			map['14'].marketID = 38;
 			map['15'].marketID = 35;
+		}
+		if(myPlayerID == "1300"){
+			//Kazuár
+			//map['01'].barrackID = 29;
+			//map['01'].troopType = 't';
+			//map['01'].marketID = 35;
 		}
 	}catch (err){
 		console.log("ERROR: "+ err +"  "+ err.message)
@@ -3252,6 +3256,57 @@ function merchant(aTask) {
 	return merchantResult;
 }
 
+function refillVillage(aTask){
+	_log(1,"Refill Village> Begin. aTask = " + aTask);
+	printMsg("Start refill vilage");
+	var nid = parseInt(aTask[4]);
+	var opts = aTask[3].split("_");
+	console.log(opts)
+	switchActiveVillage(nid,opts,handleRefillRequest)
+	_log(2,"Refill Village> End.");
+}
+
+function handleRefillRequest(httpRequest,options){
+	if (httpRequest.readyState == 4) {
+		if (httpRequest.status == 200 && httpRequest.responseText ) { // ok
+			var parser = new DOMParser();
+			var dpcc = parser.parseFromString(httpRequest.responseText, "text/html");
+			getResources(dpcc);
+
+			var targetX  = options[0];
+			var targetY  = options[1];
+			var zid = coordsXYToZ(targetX,targetY);
+			var nK  = parseInt(options[2]);
+			var noCrop  = options[3];
+			var selectedVillagesString = [];
+			var copyThem = false;
+			for (var i = 4; i< options.length; i++){
+				var currentOptionElement = options[i];
+				if(currentOptionElement.startsWith(";")){
+					copyThem = true;
+				}
+				if(copyThem){
+					selectedVillagesString.push(currentOptionElement.replace(/;/g, ''))
+				}
+				if(currentOptionElement.endsWith(";")){
+					copyThem = false;
+				}
+			}
+			var missingResources = [0,0,0,0];
+            for (var i = 0; i < 4; i++) {
+                missingResources[i] = Math.round( fullRes[i]  * nK/100 - resNow[i] );
+                if( missingResources[i] < 0 ) missingResources[i] = 0;
+			}
+			if(noCrop == true){
+				missingResources[3]=0;
+			}
+			unsafeWindow.sendResourcesForTroopsFromSelectedVillages(selectedVillagesString,missingResources.join('_'),income.join('_'),zid);
+		}
+	}
+}
+
+
+
 function handleMerchantRequest1(httpRequest, aTask) {
 	_log(3,"handleMerchantRequest1> Begin.");
 	if (httpRequest.readyState == 4) {
@@ -3673,6 +3728,7 @@ function displayTimerForm(iTask, target, options, timestamp, taskindex, villaged
 			}else{
 				sMoreInfo += " WITH crop";
 			}
+			sMoreInfo += " from villages: " +options[4].toString();
 			break;
 	}
 
@@ -3710,7 +3766,14 @@ function displayTimerForm(iTask, target, options, timestamp, taskindex, villaged
 	oTimerForm.setAttribute("onsubmit", "return false;");
 	//Use img tag directly
 	var sLinkClose = "<img src='" +sCloseBtn+ "' alt='["+aLangStrings[56]+"]' title='"+aLangStrings[56]+"' id='ttq_close_btn' class='ttq_close_btn' onclick='document.body.removeChild(document.getElementById(\"timerform_wrapper\"));' />";
-	if (typeof(options) == "object") options = options.join("_");
+	if (typeof(options) == "object") {
+		//4ik elembe lesz a selected villages, azt beékeljük ;-vel
+		if(Array.isArray(options[4])){
+			options[4] = ";"+options[4].join("_")+";"
+		}
+		options = options.join("_");
+	}
+	
 	oTimerForm.innerHTML =
 	/* 0 */ '<input type="hidden" name="timerTask" value="' +iTask+ '" />' +
 	/* 1 */	'<input type="hidden" name="timerTarget" value="' +target+ '" />' +
@@ -4261,6 +4324,10 @@ function switchActiveVillage(did) {
 	_log(2, "Switching your village back to " +did);
 	if ( Number.isInteger(did) && did > 0 ) get(fullName+"dorf1.php?newdid="+did, null, null);
 }
+function switchActiveVillage(did,options,callback) {
+	_log(2, "Switching your village back to " +did);
+	if ( Number.isInteger(did) && did > 0 ) get(fullName+"dorf1.php?newdid="+did, callback, options, true);
+}
 
 
 
@@ -4653,8 +4720,7 @@ function getVillageStructByVillageName(selectedVillageName){
 
 		var tXX = coordZToXY(currentVillageZID)[0];
 		var tYY = coordZToXY(currentVillageZID)[1];
-		var tData = [tXX,tYY,nK,noCrop];
-	
+		var tData = [tXX,tYY,nK,noCrop,selectedVillages];
 		displayTimerForm(10, currentVillageZID, tData);
  }
 
@@ -4663,8 +4729,9 @@ function getVillageStructByVillageName(selectedVillageName){
  * array of selected village names: e.g: ['02','03'...]
  * string of '_' concatenated missing resources: e.g: '4000_1200_10_20'
  * string of '_' concatenated income/h of the village to send to: e.g: '5250_5250_5250_6000'
+ * zid optional ha nincs megadva akkor a current active falu lesz kiválasztva
  */
-unsafeWindow.sendResourcesForTroopsFromSelectedVillages = function(selectedVillages,missingResources,incomeString){
+unsafeWindow.sendResourcesForTroopsFromSelectedVillages = function(selectedVillages,missingResources,incomeString,zid){
 	bLocked = true;
 	if(missingResources == '0_0_0_0'){
 		console.log('INFO exiting, nothing to send')
@@ -4686,13 +4753,16 @@ unsafeWindow.sendResourcesForTroopsFromSelectedVillages = function(selectedVilla
 	}
 
 	var currentVillageZID;
-	Object.keys(villages).forEach(function(key) {
-		villageStruct = villages[key];
-		if(villageStruct.id == currentActiveVillage){
-			currentVillageZID = villageStruct.vid
-		}
-	});
-	console.log(currentVillageZID);
+	if (typeof(zid) != 'undefined'){
+		currentVillageZID = zid;
+	}else{
+		Object.keys(villages).forEach(function(key) {
+			villageStruct = villages[key];
+			if(villageStruct.id == currentActiveVillage){
+				currentVillageZID = villageStruct.vid
+			}
+		});
+	}
 
 	if(!notUndefinedNotNull(currentVillageZID)){
 		console.log('ERROR could not determine current village coords, exiting')
@@ -4724,7 +4794,7 @@ unsafeWindow.sendResourcesForTroopsFromSelectedVillages = function(selectedVilla
 		}
 		wait(800);
 	}
-
+	bLocked = false;
 	if(result.join('_') =='0_0_0_0'){
 		console.log('COMPLETED sending resources')
 	}else{
@@ -4771,7 +4841,7 @@ unsafeWindow.scheduleTroopsInSelectedVillages = function(selectedVillages) {
 
         }
 	}
-	bLocked = true;
+	bLocked = false;
 	console.log('INFO done training')
 };
 

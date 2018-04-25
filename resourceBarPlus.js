@@ -4894,7 +4894,7 @@
         scheduleSend.addEventListener('click',function(){
             getResources();
             var selectedValues = getSelectValues(sek);
-            unsafeWindow.scheduleVillageRefill(selectedValues,nK);
+            unsafeWindow.scheduleVillageRefill(selectedValues,nK,false);
         }, 0);
         scheduleSendNoCrop.addEventListener('click',function(){
             getResources();
