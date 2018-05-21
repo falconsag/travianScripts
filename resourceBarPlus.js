@@ -3668,10 +3668,10 @@
                 var e = $gc('rbcheckbox');
                 for(var i=0; i<e.length; i++) {
                     if(e[i].checked) {
-                        setTimeout(function(k){createTrade(k);}, 600*count++, e[i].value);
+                        setTimeout(function(k){createTrade(k);}, 150*count++, e[i].value);
                     }
                     if (i==e.length-1) {
-                        setTimeout(function(){ document.location.href = fullName +'build.php?t=0&gid=17'; }, 600*count);
+                        setTimeout(function(){ document.location.href = fullName +'build.php?t=0&gid=17'; }, 150*count);
                     }
                 }
             }
@@ -3712,9 +3712,9 @@
             delImg.removeEventListener('click', RemoveAllTradeRoutes, false);
             for (var i=0; i<routesTable.tBodies[0].rows.length-1; i++) {
                 var linkEl = $gt("a",routesTable.tBodies[0].rows[i])[0];
-                setTimeout(function(x){return function(){ RemoveTradeRoute(x); };}(linkEl), 600*i);
+                setTimeout(function(x){return function(){ RemoveTradeRoute(x); };}(linkEl), 150*i);
                 if (i==routesTable.tBodies[0].rows.length-2) {
-                    setTimeout(function(){ document.location.href = fullName +'build.php?t=0&gid=17'; }, 600*(i+1));
+                    setTimeout(function(){ document.location.href = fullName +'build.php?t=0&gid=17'; }, 150*(i+1));
                 }
             }
         }
@@ -3727,9 +3727,9 @@
             for ( var i=0; i<routesTable.tBodies[0].rows.length-1; i++) {
                 var inputEl = $gt("input",routesTable.tBodies[0].rows[i])[0];
                 if (disableInp.checked==false) {
-                    if(inputEl.checked) { setTimeout(function(x){return function(){ OnOffTradeRoute(x); };}(inputEl), 600*count++); }
+                    if(inputEl.checked) { setTimeout(function(x){return function(){ OnOffTradeRoute(x); };}(inputEl), 150*count++); }
                 } else {
-                    if(inputEl.checked==false) { setTimeout(function(x){return function(){ OnOffTradeRoute(x); };}(inputEl), 600*count++); }
+                    if(inputEl.checked==false) { setTimeout(function(x){return function(){ OnOffTradeRoute(x); };}(inputEl), 150*count++); }
                 }
             }
         }
@@ -4763,11 +4763,24 @@
         var el = getMultiSelectWithVillages();
         var heroNextVillage = unsafeWindow.getHeroNextVillage();
         var sendHeroToNext = $a('Hero to '+unsafeWindow.getHeroNextVillage(),[['href',jsVoid],['dir','ltr']]);
+
         var sendHeroToSelected = $a('Hero to selected',[['href',jsVoid],['dir','ltr']]);
         sendHeroToSelected.addEventListener('click', function() {
             var selectedValues = getSelectValues(el);
             unsafeWindow.sendHeroToSelectedVillage(selectedValues);
         }, 0);
+
+        var upgradeAllFields = $a('Upgrade all fields',[['href',jsVoid],['dir','ltr']]);
+        upgradeAllFields.addEventListener('click', function() {
+            unsafeWindow.upgradeFields("1_2_3_4_5_6_7_8_9_10_11_12_13_14_15_16_17_18");
+        }, 0);
+
+        var upgradeAll4446Crops = $a('Upgrade 4-4-4-6 CROPs',[['href',jsVoid],['dir','ltr']]);
+        upgradeAll4446Crops.addEventListener('click', function() {
+            unsafeWindow.upgradeFields("2_8_9_12_13_15");
+        }, 0);
+
+
         sendHeroToNext.addEventListener('click', function() {
             unsafeWindow.sendHeroToSelectedVillage(heroNextVillage);
         }, 0);
@@ -4777,14 +4790,23 @@
         }
         
         var scheduleTroopsButton = $a('Schedule troops',[['href',jsVoid],['dir','ltr']]);
+        var sendTroopsToWW = $a('Troops to WW',[['href',jsVoid],['dir','ltr']]);
 
         scheduleTroopsRow.appendChild($c(scheduleTroopsButton));
+        scheduleTroopsRow.appendChild($c(sendTroopsToWW));
+
+        sendTroopsToWW.addEventListener('click', function() {
+            var selectedValues = getSelectValues(el);
+            unsafeWindow.sendTroopsToWW(selectedValues);
+        }, 0);
         scheduleTroopsButton.addEventListener('click', function() {
             var selectedValues = getSelectValues(el);
             unsafeWindow.scheduleTroopsInSelectedVillages(selectedValues);
         }, 0);
 
-         tblBody.appendChild(scheduleTroopsRow);
+        tblBody.appendChild(scheduleTroopsRow);
+        tblBody.appendChild($ee('TR', $c(upgradeAllFields)));
+        tblBody.appendChild($ee('TR', $c(upgradeAll4446Crops)));
 
         var alink = $a('ResourceBar+',[['href', '#'],['onclick',jsNone],['title',gtext("overview")]]);
         alink.addEventListener('click', overviewAll, false);
@@ -4840,12 +4862,14 @@
     function saveSpaceLeftToMem () {
         if( closeWindowN(10) ) return;
 
+
         function resRecalc () {
             nK = parseInt(newPR.value).NaN0();
             for (var i = 0; i < 4; i++) {
                 RB.wantsMem[i] = Math.round( fullRes[i]  * nK/100 - resNow[i] );
                 if( RB.wantsMem[i] < 0 ) RB.wantsMem[i] = 0;
                 ressA[i].innerHTML = RB.wantsMem[i];
+                $at(inputFields[i], [['value',RB.wantsMem[i]]])
             }
         }
         function svOK () {
@@ -4858,6 +4882,15 @@
         }
 
         var nK = RB.dictFL[21];
+        zsido =10;
+        
+        var inputFields = [];
+        for( var i =0; i<4; i++){
+            var input = $e('INPUT',[['type', 'TEXT'],['size',4],['maxlength',6],['value',0]]);
+            inputFields.push(input);
+        }
+        
+
         if( nK < 1 ) nK = 90;
         var newT = $e('TABLE',[['class',allIDs[7]],['style','background-color:#FAFAFF;']]);
         var newPR = $e('INPUT',[['type', 'TEXT'],['size',2],['maxlength',2],['value',nK]]);
@@ -4869,21 +4902,52 @@
         RB.wantsMem = [0,0,0,0,village_aid];
         for (var i = 0; i < 4; i++) {
             ressA[i] = $c(RB.wantsMem[i]);
-            newT.appendChild($em('TR',[$c(trImg('r' + (i+1))),ressA[i]]));
+            if(i==3){
+                //búza sorába rakjuk a gombokat
+                var ennyitHref = $a('Schedule ennyit',[['href',jsVoid],['dir','ltr']]);
+                ennyitHref.addEventListener('click',function(){
+                    console.log('currently not supported due to lack of need')
+                    if(newPR.value == 'x' || newPR.value == 'X'){
+
+
+                    }else{
+                        //console.log('ERROR: % value should be \'x\' or \'X\' if you would like to use this feature')
+                    }
+                }, 0);
+                var ennyiLegyenHref = $a('Schedule ennyi legyen',[['href',jsVoid],['dir','ltr']]);
+                ennyiLegyenHref.addEventListener('click',function(){
+                    if(newPR.value == 'x' || newPR.value == 'X'){
+
+
+                    }else{
+                        console.log('ERROR: % value should be \'x\' or \'X\' if you would like to use this feature')
+                    }
+                }, 0);
+                newT.appendChild($em('TR',[$c(trImg('r' + (i+1))),ressA[i],inputFields[i],$c(ennyitHref),$c(ennyiLegyenHref)]));
+            }
+            else{
+                newT.appendChild($em('TR',[$c(trImg('r' + (i+1))),ressA[i],inputFields[i]]));
+            }
+            
         }
 
         //send button
         var sendFromVillagesBtn = $a('Send',[['href',jsVoid],['dir','ltr']]);
         //send without crop button
         var sendFromVillagesBtn2 = $a('Send no Crop',[['href',jsVoid],['dir','ltr']]);
-        var scheduleSend = $a('Schedule refill',[['href',jsVoid],['dir','ltr']]);
-        var scheduleSendNoCrop = $a('Schedule no crop',[['href',jsVoid],['dir','ltr']]);
+        var scheduleSend = $a('Schedule % refill',[['href',jsVoid],['dir','ltr']]);
+        var scheduleSendNoCrop = $a('Schedule % no crop',[['href',jsVoid],['dir','ltr']]);
         var sek = getMultiSelectWithVillages();
         sendFromVillagesBtn.addEventListener('click',function(){
-            getResources();
             var selectedValues = getSelectValues(sek);
-            var missingResources = [RB.wantsMem[0],RB.wantsMem[1],RB.wantsMem[2],RB.wantsMem[3]];
-            unsafeWindow.sendResourcesForTroopsFromSelectedVillages(selectedValues,missingResources.join('_'),income.join('_'));
+            var resourcesToSend
+            if(newPR.value == 'x' || newPR.value == 'X'){
+                var resourcesToSend = [parseInt(inputFields[0].value),parseInt(inputFields[1].value),parseInt(inputFields[2].value),parseInt(inputFields[3].value)];
+            }else{
+                getResources();
+                var resourcesToSend = [RB.wantsMem[0],RB.wantsMem[1],RB.wantsMem[2],RB.wantsMem[3]];
+            }
+            unsafeWindow.sendResourcesForTroopsFromSelectedVillages(selectedValues,resourcesToSend.join('_'),income.join('_'));
         }, 0);
         sendFromVillagesBtn2.addEventListener('click',function(){
             getResources();
@@ -9258,8 +9322,16 @@
                 unsafeWindow.sendResourcesForTroopsFromSelectedVillages(selectedValues,missingResources.join('_'),income.join('_'));
             }, 0);
 
+            var sendFromVillagesNoCropBtn = $a('Send no crop',[['href',jsVoid],['dir','ltr']]);
+            sendFromVillagesNoCropBtn.addEventListener('click',function(){
+                var neededResources = [allWR[1],allWR[2],allWR[3],0];
+                var missingResources = getMissingResourcesTo(neededResources)
+                var selectedValues = getSelectValues(el);
+                unsafeWindow.sendResourcesForTroopsFromSelectedVillages(selectedValues,missingResources.join('_'),income.join('_'));
+            }, 0);
 
-            var sendFromVillagesRow = $em('TR',[$c('Send resources from villages: '),$c(el), $c(sendFromVillagesButton)]);
+
+            var sendFromVillagesRow = $em('TR',[$c('Send resources from villages: '),$c(el), $c(sendFromVillagesButton),$c(sendFromVillagesNoCropBtn)]);
 
 
             var newTbl = $ee('TABLE',actualKepzesiIdo,[['class',allIDs[7]],['style','background-color:#FAFAFF;']]);

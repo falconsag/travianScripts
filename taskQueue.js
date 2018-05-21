@@ -34,6 +34,7 @@
 
 (function () {
 
+	var retainFromSending = [0,0,0,0];
 	var USE_SMART_RESOURCE_SCALING = 0; //leskálázzuk egyenletesen a nyersi küldést annyira amennyit tud a falu maxon
 										//pl 200k, 200k, 200k, 200k és a falu tud össz 100k-t akkor 25k megy mindenből
 										//viszont ez nem lesz teljesen jó mert ha nagyon sokat kell szállítani, nagyon le lesz skálázva
@@ -991,13 +992,13 @@ function checkSetTasks() {
 				var currVillageId = aThisTask[4];
 				var taskType = aThisTask[0];
 				var taskSiteID =  parseInt(aThisTask[2]);
-				if(taskType == "0" && taskSiteID <= 18 && skipVillagesFieldUpgradeSet.has(currVillageId)){
+				if((taskType == "0" || taskType =="-1") && taskSiteID <= 18 && skipVillagesFieldUpgradeSet.has(currVillageId)){
 					//if it's an upgrade task, it's a resource field and there was already a failing resource field
 					//upgrade attempt skip this
 					continue;
 				}
-				if(taskType == "0" && taskSiteID > 18 && skipVillagesBuildingUpgradeSet.has(currVillageId)){
-					//if it's an upgrade task, it's a resource field and there was already a failing resource field
+				if((taskType == "0" || taskType =="-1") && taskSiteID > 18 && skipVillagesBuildingUpgradeSet.has(currVillageId)){
+					//if it's an upgrade task, it's a building and there was already a failing building
 					//upgrade attempt skip this
 					continue;
 				}
@@ -1018,11 +1019,11 @@ function checkSetTasks() {
 					return true;
 				}else{
 					//only if an upgrade job failed adding the village to skip
-					if(taskType== "0" && taskSiteID <= 18){
+					if((taskType== "0" || taskType =="-1") && taskSiteID <= 18){
 						//if failed and was a resource upgrade, add to the correct set
 						skipVillagesFieldUpgradeSet.add(currVillageId);
 					}
-					if(taskType== "0" && taskSiteID > 18){
+					if( (taskType== "0" || taskType =="-1") && taskSiteID > 18){
 						//if failed and was a resource upgrade, add to the correct set
 						skipVillagesBuildingUpgradeSet.add(currVillageId);
 					}
@@ -1179,6 +1180,11 @@ function refreshTaskList(aTasks) {
 		var sTask = "";
 		var sTaskMoreInfo = "";
 		switch(aThisTask[0]) {
+			case "-1":
+				sTaskSubject = "- "+aThisTask[2] + " helyen";
+				sTask = "Automatic field";
+				sTaskMoreInfo = "csirasag"
+				break;
 			case "0":  //build
 			case "1":  //upgrade
 				sTaskSubject = "- "+aThisTask[3].split("_")[1];
@@ -1240,6 +1246,19 @@ function refreshTaskList(aTasks) {
 			case "9": // Send troops through Gold-Club
 				sTask = getOption('FARMLIST','');
 				sTaskSubject = " >> " + aThisTask[2] + " ";
+				break;
+
+			case "10":  //Send Merchants
+				var options = aThisTask[3].split("_");
+				sTask = "Refill"
+				sTaskSubject = " to "+options[2] + "%"
+				sTaskMoreInfo = "";
+				if(options[3] == true){
+					sTaskMoreInfo += " WITHOUT crop";
+				}else{
+					sTaskMoreInfo += " WITH crop";
+				}
+				sTaskMoreInfo += " from villages: " +options[4].toString();
 				break;
 			default:
 				break;
@@ -1360,6 +1379,9 @@ function triggerTask(aTask) {
 	_log(3,"Begin triggerTask("+aTask+")");
 	ttqBusyTask = aTask;
 	switch(aTask[0]) {
+		case "-1":
+			result = upgradebuild(aTask,true);
+			break;
 		case "0": //build new building
 		case "1": //upgrade building
 			result = upgradebuild(aTask);
@@ -1651,7 +1673,7 @@ function createBuildLinks() {
 		var clikMOSTFunction = function() {
 			setTask(iTask, Math.floor(new Date()/1000), iSiteId, bOptions);
 		};
-		ttqAddEventListener(oLink, 'click', clikMOSTFunction, false);
+		ttqAddEventListener(oLink2, 'click', clikMOSTFunction, false);
 		bBuildDesc.appendChild(oLink);
 
 		oLink.appendChild(oLink2);
@@ -1661,6 +1683,8 @@ function createBuildLinks() {
     }
 	_log(3, "End createBuildLinks()");
 }
+
+
 
 //CUSTOM
 function createCustomMerchantSenderLink(){
@@ -1743,7 +1767,7 @@ function createScheduleTroopsLink(){
 			if(!continueE){
 				break;
 			}
-			wait(1500);
+			wait(600);
 		}
 		//checkSetTasks();
 		} else {
@@ -1796,8 +1820,10 @@ function getVillageNamesAndZIDs(){
 			map['09'].barrackID = 36;
 			map['10'].barrackID = 29;
 			map['11'].barrackID = 29;
+			map['12'].barrackID = 33;
 
 			//defining troops to build types
+			map['01'].troopType = 't';
 			map['02'].troopType = 't';
 			map['03'].troopType = 't';
 			map['04'].troopType = 't';
@@ -1806,6 +1832,9 @@ function getVillageNamesAndZIDs(){
 			map['07'].troopType = 't';
 			map['08'].troopType = 't';
 			map['09'].troopType = 't';
+			map['10'].troopType = 't';
+			map['11'].troopType = 't';
+			map['12'].troopType = 't';
 
 
 			//defining market ids
@@ -1827,14 +1856,33 @@ function getVillageNamesAndZIDs(){
 		}
 		if(myPlayerID == "1300"){
 			//Kazuár
-			//map['01'].barrackID = 29;
-			//map['01'].troopType = 't';
-			//map['01'].marketID = 35;
+			map['02'].marketID = 35;
+			map['03'].marketID = 35;
+			map['04'].marketID = 35;
+
+			map['05'].marketID = 33;
+			map['06'].marketID = 33;
+			map['07'].marketID = 33;
+			map['08'].marketID = 33;
+			map['09'].marketID = 33;
+			map['10'].marketID = 33;
+			map['11'].marketID = 33;
+			map['12'].marketID = 33;
+			map['13'].marketID = 33;
+			map['14'].marketID = 33;
+		}
+		if(myPlayerID == "1326"){
+			//CellularDeath
+			map['01'].marketID = 33;
+			map['02'].marketID = 32;
+			map['03'].marketID = 33;
+			map['04'].marketID = 38;
+			map['05'].marketID = 33;
+			map['06'].marketID = 33;
 		}
 	}catch (err){
 		console.log("ERROR: "+ err +"  "+ err.message)
 	}
-
 	return map;
 }
 
@@ -1889,7 +1937,7 @@ function reFillStorageHandler(){
     }
 }
 
-function upgradebuild(aTask) {
+function upgradebuild(aTask, ignoreBuildingID) {
     var result = "fail";
 	// UpgradeBuild> Begin. aTask = (1,1303246876,36,5_Sawmill,151972)
 	_log(3,"UpgradeBuild> Begin. aTask = ("+JSON.stringify(aTask)+")");
@@ -1930,7 +1978,13 @@ function upgradebuild(aTask) {
 							tmp = myBuilds[ii].getElementsByTagName('img');
 							if ( tmp.length < 1 ) continue;
 							tmp = parseInt(tmp[0].className.split(" g")[1]);
-							if ( isNaN(tmp) || tmp != buildingID ) continue;
+							console.log(tmp + "  " + buildingID +" ezeaz")
+							if ( isNaN(tmp)) continue;
+							if(ignoreBuildingID == true){
+
+							}else if(tmp != buildingID){
+								continue;
+							}
 							tmp = myContracts[ii].getElementsByTagName("button");
 							if ( tmp.length > 0 ) {
 								if (tmp[0].getAttribute('class')) if (tmp[0].getAttribute('class').indexOf("gold builder") > -1)
@@ -2504,9 +2558,9 @@ function attack(aTask) {
 	printMsg(aLangStrings[6] + " > 1<br><br>" + getTaskDetails(aTask));
 	if(aTask[4] != 'null') {  //multiple villages
 		//we need to switch village (while at the same time, setting the target destination)
-		get(fullName+"build.php?id=39&tt=2&newdid=" + aTask[4] + "&z=" + aTask[2], attack2, aTask);
+		get(fullName+"build.php?id=39&tt=2&newdid=" + aTask[4] + "&z=" + aTask[2], attack2, aTask,false);
 	} else {  //only 1 village. Perform attack immediately
-		post(fullName+"build.php?id=39&tt=2", "z=" + aTask[2], attack2, aTask);
+		post(fullName+"build.php?id=39&tt=2", "z=" + aTask[2], attack2, aTask,false);
 		_log(2, "The attack was requested.");
 	}
 	_log(1, "End attack("+aTask+")");
@@ -2556,7 +2610,7 @@ function attack2(httpRequest,aTask) {
 					}
 				}
 				sParams = sParams.substring(0, sParams.length - 1);
-				post(fullName+'build.php?id=39&tt=2', sParams, attack3, aTask);
+				post(fullName+'build.php?id=39&tt=2', sParams, attack3, aTask,false);
 				return;
 			}
 			if ( reqVID != currentActiveVillage ) switchActiveVillage ( currentActiveVillage );
@@ -2619,7 +2673,7 @@ function attack3(httpRequest,aTask){
 					} else sParams += tInputs[q].name + "=" + tInputs[q].value + "&";
 				}
 				sParams = sParams.substring(0, sParams.length - 1);
-				post(fullName+'build.php?id=39&tt=2', sParams, handleRequestAttack, aTask);
+				post(fullName+'build.php?id=39&tt=2', sParams, handleRequestAttack, aTask,false);
 				return;
 			}
 			if ( reqVID != currentActiveVillage ) switchActiveVillage(currentActiveVillage);
@@ -3261,7 +3315,6 @@ function refillVillage(aTask){
 	printMsg("Start refill vilage");
 	var nid = parseInt(aTask[4]);
 	var opts = aTask[3].split("_");
-	console.log(opts)
 	switchActiveVillage(nid,opts,handleRefillRequest)
 	_log(2,"Refill Village> End.");
 }
@@ -3278,20 +3331,7 @@ function handleRefillRequest(httpRequest,options){
 			var zid = coordsXYToZ(targetX,targetY);
 			var nK  = parseInt(options[2]);
 			var noCrop  = options[3];
-			var selectedVillagesString = [];
-			var copyThem = false;
-			for (var i = 4; i< options.length; i++){
-				var currentOptionElement = options[i];
-				if(currentOptionElement.startsWith(";")){
-					copyThem = true;
-				}
-				if(copyThem){
-					selectedVillagesString.push(currentOptionElement.replace(/;/g, ''))
-				}
-				if(currentOptionElement.endsWith(";")){
-					copyThem = false;
-				}
-			}
+			var selectedVillagesString = options[4].split(";");
 			var missingResources = [0,0,0,0];
             for (var i = 0; i < 4; i++) {
                 missingResources[i] = Math.round( fullRes[i]  * nK/100 - resNow[i] );
@@ -3369,18 +3409,28 @@ function handleMerchantRequest1(httpRequest, aTask) {
 					var map = getVillageNamesAndZIDs();
 					var sourceVid;
 					var targetVid = parseInt(aTask[2]);
+					var armyVillage = false;
 					Object.keys(map).forEach(function(key) {
 						value = map[key];
 						if(value.id == oldVID){
 							sourceVid = value.vid;
+							armyVillage = typeof(value.troopType ) == 'undefined' ? false : true;
 						}
 					});
 					//kiszámoljuk mennyit kell küldeni úgy, hogy mire odaér addigra a falu termelése a maradékot kitermelje
 					var secsToArriveInVillage = getTTime( calcDistance(sourceVid, targetVid), merchantTimes[iMyRace]);
 					for( var i = 0; i < 4; i++ ) {
 						updatedSend[i] = Math.ceil(parseInt(originalToSend[i]) - sourceIncome[i]/3600 * secsToArriveInVillage);
+
+						//ha a source village sereges, akkor a retainben megadott nyersi mindig meg kell h maradjon küldésnél
+						if(armyVillage == true && (resNow[i] - updatedSend[i] < retainFromSending[i])){
+							updatedSend[i] = resNow[i] - retainFromSending[i];
+							console.log("army falu és retain meg kell h")
+						}
+
 						if (updatedSend[i] < 0 ) updatedSend[i] =0;
 					}
+
 
 					//if smart send
 					opts[2]  = ''+updatedSend[0];
@@ -3769,7 +3819,7 @@ function displayTimerForm(iTask, target, options, timestamp, taskindex, villaged
 	if (typeof(options) == "object") {
 		//4ik elembe lesz a selected villages, azt beékeljük ;-vel
 		if(Array.isArray(options[4])){
-			options[4] = ";"+options[4].join("_")+";"
+			options[4] = options[4].join(";")
 		}
 		options = options.join("_");
 	}
@@ -4685,9 +4735,57 @@ function getVillageStructByVillageName(selectedVillageName){
 
 
 
+unsafeWindow.upgradeFields = function(fields){
+	var txt;
+	var r = confirm("Are you sure you want to upgrade :" +fields);
+	if (r == true) {
+		var fieldsToUp = fields.split('_');
+		for(var i=0; i< fieldsToUp.length; i++){
+			var fieldNo = parseInt(fieldsToUp[i])
+			setTask(-1, Math.floor(new Date()/1000), fieldNo, '');
+			console.log("done adding "+ fieldNo)
+		}
+	} else {
+		
+	}
+}
+
  unsafeWindow.getHeroNextVillage = function(){
 	return heroPath[getCurrentVillageStruct().villageName];
  }
+
+
+ unsafeWindow.sendTroopsToWW = function(selectedVillages){
+
+	var legioCount = 0;
+	var testorCount = 2000;
+	var WWX = "-12";
+	var WWY = "2";
+
+
+	var villages = getVillageNamesAndZIDs();
+
+	for(var i = 0; i < selectedVillages.length ; ++i ) {
+		var villageName = selectedVillages[i];
+		var villageStruct = villages[villageName];
+		
+		var task = [];
+		task.push('2')
+		task.push(''+new Date().getTime())
+		task.push(''+coordsXYToZ(WWX,WWY))
+		task.push('2_'+legioCount+'_'+testorCount+'_0_0_0_0_0_0_0_0_0_0_-1_-1_-1_-1_0') // 2 az valami 'c', az első 1 az a hero , az utolsó pedig hogy áthelyezés, a -1ek nemtom
+		task.push(villageStruct.id) 
+
+		console.log("sending troops for village: " + villageName)
+		attack(task);
+		console.log("done sending troops for village: " + villageName)
+		wait(1000);
+	}
+
+	
+ }
+
+
 
  unsafeWindow.sendHeroToSelectedVillage = function(selectedVillageName){
 	if(Array.isArray(selectedVillageName) && selectedVillageName.length == 1){
@@ -4792,7 +4890,7 @@ unsafeWindow.sendResourcesForTroopsFromSelectedVillages = function(selectedVilla
 		if(!continueE){
 			break;
 		}
-		wait(800);
+		wait(600);
 	}
 	bLocked = false;
 	if(result.join('_') =='0_0_0_0'){
@@ -4822,9 +4920,9 @@ unsafeWindow.scheduleTroopsInSelectedVillages = function(selectedVillages) {
 				taskTrain.push(''+oDate);
 				taskTrain.push(''+villageStruct.barrackID);
 				if(villageStruct.troopType =='l'){
-					taskTrain.push(getLegioOptions(50));
+					taskTrain.push(getLegioOptions(0));
 				}else if (villageStruct.troopType =='t'){
-					taskTrain.push(getTestorOptions(50));
+					taskTrain.push(getTestorOptions(500));
 				}else{
 					console.log("WARNING troop type is unknown for village: "+ villageName + " continue with next village");
 					continue;
@@ -4833,7 +4931,7 @@ unsafeWindow.scheduleTroopsInSelectedVillages = function(selectedVillages) {
 				console.log('INFO starting train in: ' + villageName)
 				train(taskTrain);
 				console.log('INFO finishing train: '  + villageName)
-				wait(1500);
+				wait(600);
 			}else{
 				console.log("WARNING no troop type is defined for village: "+ villageName + " continue with next village");
 				continue;
@@ -4975,12 +5073,13 @@ if (init) {
 			break;
 		}
 	}
-	if( oLogout.snapshotLength > 0 || errorFL ) TTQ_setValue(CURRENT_SERVER+'login','0');
-    var oSysMsg = xpath("//div[@id='sysmsg']");
+
+	if(  !(/logout.php/.test(crtPath)) && (oLogout.snapshotLength > 0 || errorFL) ) TTQ_setValue(CURRENT_SERVER+'login','0');
+	var oSysMsg = xpath("//div[@id='sysmsg']");
 	var oLoginBtn = xpath("//button[@id='s1'][@name='s1'][@type='submit']");
     if ( oLoginBtn.snapshotLength < 1 && (oLogout.snapshotLength > 0 || oSysMsg.snapshotLength > 0) ) {
         _log(0, "Error screen or something. Game is not loaded. Did not start TTQ.");
-    } else if ( oLoginBtn.snapshotLength == 1 ) {  //Auto-Login, this assumes that FF has saved your username and password
+	} else if ( oLoginBtn.snapshotLength == 1 ) {  //Auto-Login, this assumes that FF has saved your username and password
 		var loginFL = false;
 		var oLogin = xpath("//input[@name='name'][@class='text'][@type='text']").snapshotItem(0);
 		var oPassword = xpath("//input[@name='password'][@class='text'][@type='password']").snapshotItem(0);
