@@ -4761,8 +4761,14 @@
          tblBody.appendChild(row);
 
         var el = getMultiSelectWithVillages();
-        var heroNextVillage = unsafeWindow.getHeroNextVillage();
-        var sendHeroToNext = $a('Hero to '+unsafeWindow.getHeroNextVillage(),[['href',jsVoid],['dir','ltr']]);
+        var heroNextVillage;
+        if(typeof(unsafeWindow.getHeroNextVillage) != 'undefined' ){
+            var heroNextVillage = unsafeWindow.getHeroNextVillage();
+        }else{
+            console.log("WARNING: unsafeWindow.getHeroNextVillage is undefined");
+        }
+
+        var sendHeroToNext = $a('Hero to '+heroNextVillage,[['href',jsVoid],['dir','ltr']]);
 
         var sendHeroToSelected = $a('Hero to selected',[['href',jsVoid],['dir','ltr']]);
         sendHeroToSelected.addEventListener('click', function() {
