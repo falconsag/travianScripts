@@ -97,8 +97,8 @@ function main() {
 
         //convert falsely values to zero: 0,NaN,undefined,false,....
 
-        resultArray[2] = resultArray[2] || 0;
-        resultArray[3] = resultArray[3] || 0;
+        resultArray[2] = isNaN(resultArray[2]) ? 0 : resultArray[2];
+        resultArray[3] = isNaN(resultArray[3]) ? 0 : resultArray[3];
         var atkLostString= (resultArray[2] != 0) ? "Atk lost: "+resultArray[2] : "";
         var defLostString= (resultArray[3] != 0) ? "Def lost: "+resultArray[3] : "";
 
