@@ -12,12 +12,6 @@
 // @version     1.5.2
 // ==/UserScript==
 
-
-/*
-* Goes through all the reports in the guild report and extracts the stolen resource amount, and the number of attackers and
-* displays it on the report page next to each entry
-*
-*/
 (function () {
 
     function addJQuery(callback) {
@@ -34,16 +28,24 @@
 
     // the guts of this userscript
 function main() {
+
+     var btnAnalyze = $('<input type="button" id="btnAnalyze" value="Analyze reports" />');
+     jQuery("div.boxes-contents.cf:first").append(btnAnalyze);
+     jQuery("#btnAnalyze").on('click',function(){
+         AnalyzeReports();
+     });
+
+
     //wrap jquery dom element in html and log
      function logJqueryDOM( domElement){
          console.log(domElement.clone().wrap('<div/>').parent().html())
      }
 
-
-
-
-
-var no=0;
+     function AnalyzeReports(){
+      jQuery('td#logAnalyzerTD').each(function(){
+      $(this).remove();
+      });
+     var no=0;
      //minden kifosztotta, és támad linkre
     jQ("a:contains('kifosztotta'),a:contains('támad')")
         .each(function() {
@@ -77,9 +79,14 @@ var no=0;
         no++;
         var resultArray = result.split(";")
         console.log("processed: "+no+" report");
-        $(this).parent().parent().parent().append("<td>"+resultArray[0]+"</td>");
-        $(this).parent().parent().parent().append("<td>"+resultArray[1]+"</td>");
+        $(this).parent().parent().parent().append('<td id="logAnalyzerTD">'+resultArray[0]+'</td>');
+        $(this).parent().parent().parent().append('<td id="logAnalyzerTD">'+resultArray[1]+'</td>');
     })
+     }
+
+
+
+
 
 }
 
