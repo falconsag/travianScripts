@@ -94,8 +94,18 @@ function main() {
         console.log("processed: "+no+" report");
         $(this).parent().parent().parent().append('<td id="logAnalyzerTD">'+resultArray[0]+'</td>');
         $(this).parent().parent().parent().append('<td id="logAnalyzerTD">'+resultArray[1]+'</td>');
-        $(this).parent().parent().parent().append('<td id="logAnalyzerTD">Atk lost:'+resultArray[2]+'</td>');
-        $(this).parent().parent().parent().append('<td id="logAnalyzerTD">Def lost:'+resultArray[3]+'</td>');
+
+        //convert falsely values to zero: 0,NaN,undefined,false,....
+
+        resultArray[2] = resultArray[2] || 0;
+        resultArray[3] = resultArray[3] || 0;
+        var atkLostString= (resultArray[2] != 0) ? "Atk lost: "+resultArray[2] : "";
+        var defLostString= (resultArray[3] != 0) ? "Def lost: "+resultArray[3] : "";
+
+        $(this).parent().parent().parent().append('<td id="logAnalyzerTD">'+atkLostString+'</td>');
+        $(this).parent().parent().parent().append('<td id="logAnalyzerTD">'+defLostString+'</td>');
+
+        
     })
      }
 
