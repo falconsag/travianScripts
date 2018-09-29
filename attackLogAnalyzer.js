@@ -67,13 +67,26 @@ function main() {
             });
             result = sumStolen+";";
 
+            //numbers of first 5 attacker type like (5,0,0) = 5 buzogányos
             var attackers = jQuery("table#attacker tbody.units:nth-child(3) td",parsedHtml).slice(0,5)
                .map(function(){
                 return $(this).text()
             })
             .get()
             .join(",");
-            result +=attackers
+
+             var sumAttackerLost = 0
+             jQuery("table#attacker tbody.units.last td",parsedHtml).each(function(){
+                 sumAttackerLost += Number($(this).text());
+             });
+
+
+             var sumDefenderLost =0;
+             jQuery("table#attacker",parsedHtml).siblings("table").find("tbody.units.last td").each(function(){
+                 sumDefenderLost += Number($(this).text());
+             });
+
+            result =result + attackers +";"+sumAttackerLost+";"+sumDefenderLost;
            }
         });
         no++;
@@ -81,6 +94,8 @@ function main() {
         console.log("processed: "+no+" report");
         $(this).parent().parent().parent().append('<td id="logAnalyzerTD">'+resultArray[0]+'</td>');
         $(this).parent().parent().parent().append('<td id="logAnalyzerTD">'+resultArray[1]+'</td>');
+        $(this).parent().parent().parent().append('<td id="logAnalyzerTD">Atk lost:'+resultArray[2]+'</td>');
+        $(this).parent().parent().parent().append('<td id="logAnalyzerTD">Def lost:'+resultArray[3]+'</td>');
     })
      }
 
