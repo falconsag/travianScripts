@@ -42,6 +42,7 @@
         var resourceTable = jQuery("tr.currentLevel th:contains('Aktuális termelés')").parent().parent();
         var increaseCost = sumCost/increase*1000;
         resourceTable.append('<tr><th>1000 termelés növekedés ára:</th><td><span class="number">'+increaseCost+'</span></td></tr>');
+        resourceTable.append('<tr><th>Sum cost:</th><td><span class="number">'+sumCost+'</span></td></tr>');
     }
 
 // load jQuery and execute the main function
