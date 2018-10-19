@@ -30,7 +30,7 @@
     function main() {
 
         function isEmptyObject(obj) {
-            for(var prop in obj) {
+            for (var prop in obj) {
                 if (Object.prototype.hasOwnProperty.call(obj, prop)) {
                     return false;
                 }
@@ -72,7 +72,7 @@
                             var parsedHtml = jQuery.parseHTML(data);
 
                             //STOLEN RESOURCES
-                            jQuery("table#attacker tbody.goods img", parsedHtml).filter(".r1,.r2,.r3,.r4").each(function () {
+                            jQuery("table#attacker", parsedHtml).siblings("table.additionalInformation").find("tbody.goods img").filter(".r1,.r2,.r3,.r4").each(function () {
                                 sumStolen += Number($(this).parent().text());
                             });
                             result.sumStolen = sumStolen;
@@ -80,10 +80,10 @@
                             //ATTACKERS
                             var attackers = [];
                             var counter = 0;
-                            jQuery("table#attacker tbody.units:nth-child(3) td", parsedHtml).each(function () {
+                            jQuery("table#attacker tbody.units:nth-child(2) td", parsedHtml).each(function () {
                                 if ($(this).text() != "0") {
                                     var attackerObj = {};
-                                    attackerObj.iconHtml = jQuery("table#attacker tbody.units:nth-child(2) td:nth-child(" + (counter + 2) + ")", parsedHtml).html();
+                                    attackerObj.iconHtml = jQuery("table#attacker tbody.units:nth-child(1) td:nth-child(" + (counter + 2) + ")", parsedHtml).html();
                                     attackerObj.number = $(this).text();
                                     attackers.push(attackerObj);
                                 }
@@ -94,12 +94,12 @@
 
                             //ATTACKER LOST
                             var attackersLost = [];
-                            var counter = 0;
+                            counter = 0;
                             var sumAttackerLost = 0
                             jQuery("table#attacker tbody.units.last td", parsedHtml).each(function () {
                                 if ($(this).text() != "0") {
                                     var attackerLostObj = {};
-                                    attackerLostObj.iconHtml = jQuery("table#attacker tbody.units:nth-child(2) td:nth-child(" + (counter + 2) + ")", parsedHtml).html();
+                                    attackerLostObj.iconHtml = jQuery("table#attacker tbody.units:nth-child(1) td:nth-child(" + (counter + 2) + ")", parsedHtml).html();
                                     attackerLostObj.number = $(this).text();
                                     attackersLost.push(attackerLostObj);
                                 }
@@ -109,30 +109,30 @@
                             result.attackersLost = attackersLost;
                             result.sumAttackerLost = sumAttackerLost;
 
-
                             //DEFENDERS
-                            var sumDefenderLost = 0;
                             var dict = {};
                             var lineCounter = 0;
-                            jQuery("table#attacker", parsedHtml).siblings("table").each(function () {
+                            var sumDefenderLost = 0;
+                            jQuery("table#defender,table#reinforcement", parsedHtml).each(function () {
 
                                 //go through the defenders of each team on defenders side
                                 //and save the numbers
                                 var unitsPerColumn = {};
                                 var columnCounter = 0;
-                                jQuery("tbody.units:nth-child(3) td",$(this)).each(function(){
+                                jQuery("tbody.units:nth-child(2) td", $(this)).each(function () {
                                     unitsPerColumn[columnCounter] = Number($(this).text()) || 0;
                                     columnCounter++;
                                 });
 
                                 //skipping nonsense separator tables
-                                if(!isEmptyObject(unitsPerColumn)){
+                                if (!isEmptyObject(unitsPerColumn)) {
                                     var props = Object.getOwnPropertyNames(unitsPerColumn);
                                     for (var i = 0; i < props.length; i++) {
                                         var colNumber = Number(props[i])
-                                        var htmlOfIcon = jQuery("table#attacker", parsedHtml).siblings("table:nth-child("+(lineCounter+3)+")").find("tbody:first td.uniticon:nth-child("+(colNumber+2)+")").html();
-                                        var numberOfThatType =unitsPerColumn[i];
-                                        if(typeof dict[htmlOfIcon] == "undefined"){
+                                        var htmlOfIcon = jQuery("tbody.units:nth-child(1) td:nth-child(" + (colNumber + 2) + ")", $(this)).html();
+                                        var numberOfThatType = unitsPerColumn[i];
+                                        sumDefenderLost += Number(jQuery("tbody.units.last td:nth-child(" + (colNumber + 2) + ")", $(this)).text());
+                                        if (typeof dict[htmlOfIcon] == "undefined") {
                                             dict[htmlOfIcon] = 0;
                                         }
                                         dict[htmlOfIcon] += numberOfThatType;
@@ -142,12 +142,6 @@
                                 lineCounter++;
                             });
                             result.defenders = dict;
-
-                            //DEFENDERS LOST
-                            var sumDefenderLost = 0;
-                            jQuery("table#attacker", parsedHtml).siblings("table").find("tbody.units.last td").each(function () {
-                                sumDefenderLost += Number($(this).text());
-                            });
                             result.sumDefenderLost = sumDefenderLost;
                         }
                     });
@@ -166,21 +160,21 @@
 
                     //ATTACKERS LOST
                     var attackersLostHtmlToInsert = "";
-                    for (var i = 0; i < result.attackersLost.length; i++) {
+                    for (i = 0; i < result.attackersLost.length; i++) {
                         attackersLostHtmlToInsert = attackersLostHtmlToInsert + result.attackersLost[i].iconHtml + result.attackersLost[i].number + "</br>";
                     }
-                    parentToAppendTo.append('<td id="logAnalyzerTD" width="15%">' + attackersLostHtmlToInsert + '</td>');
+                    parentToAppendTo.append('<td id="logAnalyzerTD" width="15%">' + result.sumAttackerLost + '</br>' + attackersLostHtmlToInsert + '</td>');
 
 
                     //DEFENDERRS
                     var defendersHtmlToInsert = "";
                     var props = Object.getOwnPropertyNames(result.defenders);
-                    for (var i = 0; i < props.length; i++) {
-                       var propKey =props[i];
-                       var propVal = result.defenders[propKey];
-                       if(propVal != 0){
-                           defendersHtmlToInsert = defendersHtmlToInsert + propKey + propVal + "</br>";
-                       }
+                    for (i = 0; i < props.length; i++) {
+                        var propKey = props[i];
+                        var propVal = result.defenders[propKey];
+                        if (propVal != 0) {
+                            defendersHtmlToInsert = defendersHtmlToInsert + propKey + propVal + "</br>";
+                        }
                     }
                     parentToAppendTo.append('<td id="logAnalyzerTD" width="15%">' + defendersHtmlToInsert + '</td>');
 
@@ -188,12 +182,9 @@
                     result.sumDefenderLost = isNaN(result.sumDefenderLost) ? 0 : result.sumDefenderLost;
                     var defLostString = (result.sumDefenderLost != 0) ? "Def lost: " + result.sumDefenderLost : "";
                     $(this).parent().parent().parent().append('<td id="logAnalyzerTD">' + defLostString + '</td>');
-
-
                 })
+            jQuery("div#sidebarBoxVillagelist,div#sidebarBoxDailyquests").hide();
         }
-
-
     }
 
 // load jQuery and execute the main function
