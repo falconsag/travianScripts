@@ -126,6 +126,7 @@ var RB = new Object();
 	RB.village_PPH = [0,0,0,0,0,0,0,0,0,0,0,0,0];
 	RB.overview = [-1,'0'];
 	RB.wantsMem = [0,0,0,0,0,0,0,0,0,0];
+	RB.exchangeRes = [0, 0, 0, 0];
 //						1		2				3				4			5					6				7			8		9			10		11		12	  13, 14	15		16				17				18				19				20					21			22		23		24				25
 	RB.dictionary = [0,'Ally','Merchants','Tournament Square','Duration','resource balance','Rally point','Marketplace','Barracks','Stable','Workshop','Buy','Attacks',0,'at ','Map','Reinforcement','Attack: Normal','Attack: Raid','Culture points','Crop consumption','capacity','farm-list','','Great Barracks','Great Stable'];
 	RB.dictFL = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
@@ -2999,17 +3000,20 @@ function bodyHide ( body ) {
 
 // begin Travian - add needed resources automatically under build/upgrade link
 function needed_show( base ) {
-	function saveWantsMem ( wantsResM ) {
-		var noplace = '';
-		var ofFL = false;
-		for( var i = 0; i< 4; i++ ) if( wantsResM[i+5] > fullRes[i] ) ofFL = true;
-		if( ofFL ) {
-			noplace = gtext("noplace");
-			if( wantsResM[4] != village_aid ) RB.wantsMem = [0,0,0,0,0,0,0,0,0,0];
-		} else RB.wantsMem = wantsResM.slice();
-		RB.wantsMem[4] = village_aid;
-		saveCookie('Mem', 'wantsMem');
-		alert( noplace +"\nSaved: "+ RB.wantsMem[0] +" | "+ RB.wantsMem[1] +" | "+ RB.wantsMem[2] +" | "+ RB.wantsMem[3] );
+		function saveWantsMem(wantsResM, cookieName, isAlert) {
+			cookieName = cookieName || 'Mem';
+			var noplace = '';
+			var ofFL = false;
+			for (var i = 0; i < 4; i++) if (wantsResM[i + 5] > fullRes[i]) ofFL = true;
+			if (ofFL) {
+				noplace = gtext("noplace");
+				if (wantsResM[4] != village_aid) RB.wantsMem = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+			} else RB.wantsMem = wantsResM.slice();
+			RB.wantsMem[4] = village_aid;
+			saveCookie(cookieName, 'wantsMem');
+			if (isAlert == true) {
+				alert(noplace + "\nSaved: " + RB.wantsMem[0] + " | " + RB.wantsMem[1] + " | " + RB.wantsMem[2] + " | " + RB.wantsMem[3]);
+			}
 	}
 	function showPlusTimer () {
 		var j=timerB.length;
@@ -3053,17 +3057,57 @@ function needed_show( base ) {
 		timerB[j].obj = $eT('SPAN', timerB[j].time, 0);
 		beforeThis.appendChild($em('SPAN',['(',trImg('npc_inactive'),' ',timerB[j].obj,') ']));
 	}
+	var summa = wantsResMem[5] + wantsResMem[6] + wantsResMem[7] + wantsResMem[8];
+	var exchangeRes = [];
+	exchangeRes[0] = wantsResMem[5]
+	exchangeRes[1] = wantsResMem[6]
+	exchangeRes[2] = wantsResMem[7]
+	exchangeRes[3] = wantsResMem[8]
+	var exchangeResLink = $a('(add)', [['href', jsVoid], ['dir', 'ltr']]);
+	var showExchangeResLink = $a('(show)', [['href', jsVoid], ['dir', 'ltr']]);
+	var clearLink = $a('(clear)', [['href', jsVoid], ['dir', 'ltr']]);
+	beforeThis.appendChild($ee('SPAN', 'sum: ' + summa + ' ', [['style', 'color:green;']]));
 	var memP = $a('(M)',[['href',jsVoid],['dir','ltr']]);
-	memP.addEventListener('click', function(x) { return function() { saveWantsMem(x); }}(wantsResMem), 0);
+	memP.addEventListener('click', function (x) {return function () {saveWantsMem(x);saveWantsMem(x, undefined, true);}}(wantsResMem), 0);
+		exchangeResLink.addEventListener('click', function (x, y) {
+			return function () {
+				RB.exchangeRes[0] = parseInt(RB.exchangeRes[0]) + parseInt(x[0]);
+				RB.exchangeRes[1] = parseInt(RB.exchangeRes[1]) + parseInt(x[1]);
+				RB.exchangeRes[2] = parseInt(RB.exchangeRes[2]) + parseInt(x[2]);
+				RB.exchangeRes[3] = parseInt(RB.exchangeRes[3]) + parseInt(x[3]);
+				saveWantsMem(RB.exchangeRes, y, false);
+				logExchangeRes();
+			}
+		}(exchangeRes, "exchangeRes"), 0);
+		showExchangeResLink.addEventListener('click', function () {
+			logExchangeRes();
+		}, 0);
+		clearLink.addEventListener('click', function () {
+			RB.exchangeRes[0] = 0;
+			RB.exchangeRes[1] = 0;
+			RB.exchangeRes[2] = 0;
+			RB.exchangeRes[3] = 0;
+			saveWantsMem(RB.exchangeRes, "exchangeRes", false);
+			logExchangeRes();
+		}, 0);
 	beforeThis.appendChild(memP);
+		beforeThis.appendChild(exchangeResLink);
+		beforeThis.appendChild(showExchangeResLink);
+		beforeThis.appendChild(clearLink);
 	if( RB.wantsMem[4] == village_aid ) {
 		var memP = $a(' (M+)',[['href',jsVoid]]);
-		memP.addEventListener('click', function(x) { return function() { saveWantsMem(x); }}(wantsResMemP), 0);
+		memP.addEventListener('click', function(x) { return function() { saveWantsMem(x, undefined, true); }}(wantsResMemP), 0);
 		beforeThis.appendChild(memP);
 	}
 
 	return beforeThis;
 }
+
+	function logExchangeRes() {
+		var summa = parseInt(RB.exchangeRes[0]) + parseInt(RB.exchangeRes[1]) + parseInt(RB.exchangeRes[2]) + parseInt(RB.exchangeRes[3]);
+		console.log(RB.exchangeRes);
+		console.log(summa)
+	}
 
 function neededResAdd () {
 	function addNPC( base ) {
@@ -4195,6 +4239,7 @@ function loadAllCookie () {
 	loadVCookie ( 'VV', 'village_Var' );
 	loadCookie ( 'OV', 'overview' );
 	loadCookie ( 'Mem', 'wantsMem' );
+	loadCookie('exchangeRes', 'exchangeRes');
 	loadCookie ( 'DictTR', 'dictTR' );
 	loadCookie ( 'AS', 'serversAN' );
 
@@ -7387,6 +7432,12 @@ function npcForTroops () {
 		}
 		inps[i].value = resNowSumm - summ + sRes[i];
 	}
+	function redistrExchangeRes() {
+		inps[0].value = RB.exchangeRes[0]
+		inps[1].value = RB.exchangeRes[1]
+		inps[2].value = RB.exchangeRes[2]
+		inps[3].value = RB.exchangeRes[3]
+	}
 	function redistrNPCcrop () {
 		var newMaxCrop = fullRes[3] - sRes[3];
 		var newCrop = resNowSumm > newMaxCrop ? newMaxCrop: resNowSumm;
@@ -7400,6 +7451,9 @@ function npcForTroops () {
 	var sumSRes = sRes[0]+sRes[1]+sRes[2]+sRes[3];
 	var resNowSumm = resNow[0]+resNow[1]+resNow[2]+resNow[3] - sumSRes;
 
+	var redistrExchangeResLink = $a('fill', [['href', jsVoid], ['dir', 'ltr']]);
+	TR.appendChild($c(redistrExchangeResLink));
+	redistrExchangeResLink.addEventListener('click', redistrExchangeRes, false);
 	for( var i=1; i<11; i++ ) {
 		var tN = parseInt(RB.Setup[2])*10+i;
 		var tRS = troopInfo(tN,3)+troopInfo(tN,4)+troopInfo(tN,5)+troopInfo(tN,6);
@@ -8964,6 +9018,15 @@ function displayWhatIsNew () {
 	showRunTime();
 
 /********** end of main code block ************/
+var sumIncome = income.reduce(function (previousValue, currentValue) {
+	return previousValue + currentValue
+})
+	var sumResNow = resNow.reduce(function (previousValue, currentValue) {
+		return previousValue + currentValue
+	})
+
+	console.log("sum income: " + sumIncome);
+	console.log("sum storage: " + sumResNow);
 }
 
 function backupStart () {
