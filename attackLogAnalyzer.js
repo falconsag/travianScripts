@@ -56,10 +56,10 @@
             });
             var no = 0;
             //minden kifosztotta, és támad linkre
-            jQ("a:contains('kifosztotta'),a:contains('támad'),a:contains('kém')")
+            jQ("a:contains('kifosz'),a:contains('támad'),a:contains('kém')")
                 .each(function () {
 
-
+                    console.log("halika")
                     var linkToReport = $(this).attr('href');
                     var result = {};
                     jQuery.ajax({
