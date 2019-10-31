@@ -3063,37 +3063,48 @@ function needed_show( base ) {
 	exchangeRes[1] = wantsResMem[6]
 	exchangeRes[2] = wantsResMem[7]
 	exchangeRes[3] = wantsResMem[8]
-	var exchangeResLink = $a('(add)', [['href', jsVoid], ['dir', 'ltr']]);
+	var addExchangeResLink = $a('(add)', [['href', jsVoid], ['dir', 'ltr']]);
+	var addNoCropExchangeResLink = $a('(addNoCrop)', [['href', jsVoid], ['dir', 'ltr']]);
 	var showExchangeResLink = $a('(show)', [['href', jsVoid], ['dir', 'ltr']]);
 	var clearLink = $a('(clear)', [['href', jsVoid], ['dir', 'ltr']]);
 	beforeThis.appendChild($ee('SPAN', 'sum: ' + summa + ' ', [['style', 'color:green;']]));
 	var memP = $a('(M)',[['href',jsVoid],['dir','ltr']]);
 	memP.addEventListener('click', function (x) {return function () {saveWantsMem(x);saveWantsMem(x, undefined, true);}}(wantsResMem), 0);
-		exchangeResLink.addEventListener('click', function (x, y) {
-			return function () {
-				RB.exchangeRes[0] = parseInt(RB.exchangeRes[0]) + parseInt(x[0]);
-				RB.exchangeRes[1] = parseInt(RB.exchangeRes[1]) + parseInt(x[1]);
-				RB.exchangeRes[2] = parseInt(RB.exchangeRes[2]) + parseInt(x[2]);
-				RB.exchangeRes[3] = parseInt(RB.exchangeRes[3]) + parseInt(x[3]);
-				saveWantsMem(RB.exchangeRes, y, false);
-				logExchangeRes();
-			}
-		}(exchangeRes, "exchangeRes"), 0);
-		showExchangeResLink.addEventListener('click', function () {
+	addExchangeResLink.addEventListener('click', function (x, y) {
+		return function () {
+			RB.exchangeRes[0] = parseInt(RB.exchangeRes[0]) + parseInt(x[0]);
+			RB.exchangeRes[1] = parseInt(RB.exchangeRes[1]) + parseInt(x[1]);
+			RB.exchangeRes[2] = parseInt(RB.exchangeRes[2]) + parseInt(x[2]);
+			RB.exchangeRes[3] = parseInt(RB.exchangeRes[3]) + parseInt(x[3]);
+			saveWantsMem(RB.exchangeRes, y, false);
 			logExchangeRes();
-		}, 0);
-		clearLink.addEventListener('click', function () {
-			RB.exchangeRes[0] = 0;
-			RB.exchangeRes[1] = 0;
-			RB.exchangeRes[2] = 0;
-			RB.exchangeRes[3] = 0;
-			saveWantsMem(RB.exchangeRes, "exchangeRes", false);
+		}
+	}(exchangeRes, "exchangeRes"), 0);
+	addNoCropExchangeResLink.addEventListener('click', function (x, y) {
+		return function () {
+			RB.exchangeRes[0] = parseInt(RB.exchangeRes[0]) + parseInt(x[0]);
+			RB.exchangeRes[1] = parseInt(RB.exchangeRes[1]) + parseInt(x[1]);
+			RB.exchangeRes[2] = parseInt(RB.exchangeRes[2]) + parseInt(x[2]);
+			saveWantsMem(RB.exchangeRes, y, false);
 			logExchangeRes();
-		}, 0);
+		}
+	}(exchangeRes, "exchangeRes"), 0);
+	showExchangeResLink.addEventListener('click', function () {
+		logExchangeRes();
+	}, 0);
+	clearLink.addEventListener('click', function () {
+		RB.exchangeRes[0] = 0;
+		RB.exchangeRes[1] = 0;
+		RB.exchangeRes[2] = 0;
+		RB.exchangeRes[3] = 0;
+		saveWantsMem(RB.exchangeRes, "exchangeRes", false);
+		logExchangeRes();
+	}, 0);
 	beforeThis.appendChild(memP);
-		beforeThis.appendChild(exchangeResLink);
-		beforeThis.appendChild(showExchangeResLink);
-		beforeThis.appendChild(clearLink);
+	beforeThis.appendChild(addExchangeResLink);
+	beforeThis.appendChild(addNoCropExchangeResLink);
+	beforeThis.appendChild(showExchangeResLink);
+	beforeThis.appendChild(clearLink);
 	if( RB.wantsMem[4] == village_aid ) {
 		var memP = $a(' (M+)',[['href',jsVoid]]);
 		memP.addEventListener('click', function(x) { return function() { saveWantsMem(x, undefined, true); }}(wantsResMemP), 0);
